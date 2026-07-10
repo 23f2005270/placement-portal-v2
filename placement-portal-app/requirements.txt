@@ -1,9 +1,12 @@
 amqp==5.3.1
 aniso8601==10.0.1
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
 billiard==4.2.4
 blinker==1.9.0
 cachelib==0.14.0
 celery==5.6.3
+cffi==2.1.0
 click==8.4.2
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
@@ -26,6 +29,7 @@ libpass==1.9.3
 MarkupSafe==3.0.3
 packaging==26.2
 prompt_toolkit==3.0.52
+pycparser==3.0
 python-dateutil==2.9.0.post0
 pytz==2026.2
 redis==6.4.0
