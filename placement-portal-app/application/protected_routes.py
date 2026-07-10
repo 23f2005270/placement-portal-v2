@@ -5,10 +5,22 @@ end-to-end before real dashboards exist. Safe to delete once Milestones
 """
 from flask import Blueprint, jsonify
 from flask_login import login_required
+from flask_security import current_user
 
 from application.permissions import admin_permission, company_permission, student_permission
 
 protected_bp = Blueprint("protected_bp", __name__)
+
+
+@protected_bp.route("/api/whoami")
+@login_required
+def whoami():
+    return jsonify(
+        {
+            "email": current_user.email,
+            "roles": [r.name for r in current_user.roles],
+        }
+    )
 
 
 @protected_bp.route("/api/admin/ping")
