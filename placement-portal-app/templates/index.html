@@ -137,7 +137,170 @@
     </div>
   </div>
 
-  <!-- OTHER ROLES: placeholder until Milestones 4/5 -->
+  <!-- COMPANY DASHBOARD -->
+  <div v-else-if="user.roles.includes('company')">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3>Company Dashboard</h3>
+      <div>
+        <span class="text-muted me-3">{{ user.email }}</span>
+        <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
+      </div>
+    </div>
+
+    <div v-if="company.approval_status === 'pending'" class="alert alert-warning">
+      Your registration is pending admin approval. You can edit your profile now, but you won't be able to post drives until an admin approves your account.
+    </div>
+    <div v-if="company.approval_status === 'rejected'" class="alert alert-danger">
+      Your registration was rejected by the admin.
+    </div>
+    <div v-if="company.is_blacklisted" class="alert alert-danger">
+      Your account has been blacklisted.
+    </div>
+
+    <!-- Profile -->
+    <div class="card mb-4">
+      <div class="card-header">Company Profile</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Company Name</label>
+            <input v-model="companyForm.name" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Industry</label>
+            <input v-model="companyForm.industry" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Location</label>
+            <input v-model="companyForm.location" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Website</label>
+            <input v-model="companyForm.website" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">HR Contact Name</label>
+            <input v-model="companyForm.hr_contact_name" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">HR Contact Phone</label>
+            <input v-model="companyForm.hr_contact_phone" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea v-model="companyForm.description" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" @click="saveCompanyProfile">Save Profile</button>
+        <span v-if="companyMessage" class="text-success ms-2">{{ companyMessage }}</span>
+      </div>
+    </div>
+
+    <!-- Create Drive (only once approved) -->
+    <div class="card mb-4" v-if="company.approval_status === 'approved' && !company.is_blacklisted">
+      <div class="card-header">Post a New Placement Drive</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Title</label>
+            <input v-model="driveForm.title" class="form-control" placeholder="e.g. SDE Intern">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Salary</label>
+            <input v-model="driveForm.salary" class="form-control" placeholder="e.g. 12 LPA">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea v-model="driveForm.description" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Eligible Branches (comma-separated)</label>
+            <input v-model="driveForm.eligible_branches" class="form-control" placeholder="CSE,IT">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Min CGPA</label>
+            <input v-model.number="driveForm.min_cgpa" type="number" step="0.1" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Eligible Years (comma-separated)</label>
+            <input v-model="driveForm.eligible_years" class="form-control" placeholder="3,4">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Skills Required</label>
+            <input v-model="driveForm.skills_required" class="form-control" placeholder="Python,SQL">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Deadline</label>
+            <input v-model="driveForm.deadline" type="datetime-local" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Benefits</label>
+            <input v-model="driveForm.benefits" class="form-control">
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" @click="createDrive">Submit Drive for Approval</button>
+        <span v-if="driveMessage" class="text-success ms-2">{{ driveMessage }}</span>
+      </div>
+    </div>
+
+    <!-- Drives list -->
+    <div class="card mb-4">
+      <div class="card-header">Your Drives</div>
+      <table class="table mb-0">
+        <thead><tr><th>Title</th><th>Approval</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
+        <tbody>
+          <template v-for="d in companyDrives">
+            <tr :key="'drive-'+d.id">
+              <td>{{ d.title }}</td>
+              <td><span class="badge" :class="badgeClass(d.approval_status)">{{ d.approval_status }}</span></td>
+              <td>{{ d.status }}</td>
+              <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary me-1" @click="toggleDriveStatus(d)">
+                  {{ d.status === 'Active' ? 'Close' : 'Reopen' }}
+                </button>
+                <button class="btn btn-sm btn-outline-primary" @click="viewApplicants(d)">
+                  {{ expandedDriveId === d.id ? 'Hide Applicants' : 'View Applicants' }}
+                </button>
+              </td>
+            </tr>
+            <tr v-if="expandedDriveId === d.id" :key="'applicants-'+d.id">
+              <td colspan="5" class="bg-light">
+                <div v-if="applicants.length === 0" class="text-muted py-2">No applicants yet.</div>
+                <table class="table table-sm mb-0" v-else>
+                  <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Status</th><th>Feedback</th><th>Interview</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    <tr v-for="a in applicants" :key="a.id">
+                      <td>{{ a.student_name }}</td>
+                      <td>{{ a.branch || '—' }}</td>
+                      <td>{{ a.cgpa ?? '—' }}</td>
+                      <td><span class="badge bg-secondary">{{ a.status }}</span></td>
+                      <td><input v-model="a.feedback" class="form-control form-control-sm" placeholder="feedback"></td>
+                      <td><input v-model="a.interview_datetime" type="datetime-local" class="form-control form-control-sm"></td>
+                      <td>
+                        <select v-model="a.status" class="form-select form-select-sm d-inline w-auto me-1">
+                          <option>Applied</option>
+                          <option>Shortlisted</option>
+                          <option>Interview</option>
+                          <option>Offer</option>
+                          <option>Rejected</option>
+                          <option>Placed</option>
+                        </select>
+                        <button class="btn btn-sm btn-primary" @click="saveApplicant(a)">Save</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </template>
+          <tr v-if="companyDrives.length === 0"><td colspan="5" class="text-center text-muted">No drives posted yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OTHER ROLES: placeholder until Milestone 5 -->
   <div v-else>
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3>Welcome, {{ user.email }}</h3>
@@ -164,6 +327,15 @@ new Vue({
     companyStatusFilter: "",
     driveStatusFilter: "",
     studentSearch: "",
+    // company dashboard state
+    company: {},
+    companyForm: {},
+    companyMessage: "",
+    driveForm: {},
+    driveMessage: "",
+    companyDrives: [],
+    expandedDriveId: null,
+    applicants: [],
   },
   created() {
     this.whoami();
@@ -174,6 +346,7 @@ new Vue({
       if (res.ok) {
         this.user = await res.json();
         if (this.user.roles.includes("admin")) this.loadAdminData();
+        if (this.user.roles.includes("company")) this.loadCompanyData();
       }
     },
     async login() {
@@ -265,6 +438,90 @@ new Vue({
         body: JSON.stringify({ is_blacklisted: !student.is_blacklisted }),
       });
       if (res.ok) await this.loadStudents();
+    },
+    async loadCompanyData() {
+      await this.loadCompanyProfile();
+      await this.loadCompanyDrives();
+    },
+    async loadCompanyProfile() {
+      const res = await fetch("/api/company/profile", { credentials: "same-origin" });
+      if (res.ok) {
+        this.company = await res.json();
+        this.companyForm = Object.assign({}, this.company);
+      }
+    },
+    async saveCompanyProfile() {
+      this.companyMessage = "";
+      const res = await fetch("/api/company/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(this.companyForm),
+      });
+      if (res.ok) {
+        this.companyMessage = "Saved.";
+        await this.loadCompanyProfile();
+        setTimeout(() => (this.companyMessage = ""), 2000);
+      }
+    },
+    async loadCompanyDrives() {
+      const res = await fetch("/api/company/drives", { credentials: "same-origin" });
+      if (res.ok) this.companyDrives = await res.json();
+    },
+    async createDrive() {
+      this.driveMessage = "";
+      const res = await fetch("/api/company/drives", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(this.driveForm),
+      });
+      if (res.ok) {
+        this.driveMessage = "Submitted for admin approval.";
+        this.driveForm = {};
+        await this.loadCompanyDrives();
+        setTimeout(() => (this.driveMessage = ""), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        this.driveMessage = data.error || "Could not create drive.";
+      }
+    },
+    async toggleDriveStatus(drive) {
+      const newStatus = drive.status === "Active" ? "Closed" : "Active";
+      const res = await fetch(`/api/company/drives/${drive.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) await this.loadCompanyDrives();
+    },
+    async viewApplicants(drive) {
+      if (this.expandedDriveId === drive.id) {
+        this.expandedDriveId = null;
+        this.applicants = [];
+        return;
+      }
+      this.expandedDriveId = drive.id;
+      const res = await fetch(`/api/company/drives/${drive.id}/applicants`, { credentials: "same-origin" });
+      if (res.ok) this.applicants = await res.json();
+    },
+    async saveApplicant(applicant) {
+      const res = await fetch(`/api/company/applications/${applicant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          status: applicant.status,
+          feedback: applicant.feedback,
+          interview_datetime: applicant.interview_datetime || null,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = this.applicants.findIndex((a) => a.id === updated.id);
+        if (idx !== -1) this.$set(this.applicants, idx, updated);
+      }
     },
     badgeClass(status) {
       return {

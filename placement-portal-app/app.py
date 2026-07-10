@@ -43,10 +43,12 @@ def create_app():
     from application.auth_routes import auth_bp
     from application.protected_routes import protected_bp
     from application.admin_routes import register_admin_resources
+    from application.company_routes import register_company_resources
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(protected_bp)
     register_admin_resources(app)
+    register_company_resources(app)
 
     @app.route("/")
     def index():
