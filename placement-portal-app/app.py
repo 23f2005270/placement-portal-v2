@@ -8,6 +8,7 @@ from application.database import db
 from application.models import Role, User
 from application.permissions import init_principal
 from application.celery_app import celery as celery_app
+from flask_cache import cache
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,6 +36,7 @@ def create_app():
     app.config["SECURITY_CSRF_PROTECT_MECHANISMS"] = []
 
     db.init_app(app)
+    cache.init_app(app)
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     app.security = Security(app, user_datastore)

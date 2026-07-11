@@ -14,6 +14,7 @@ from flask_security import current_user
 from application.database import db
 from application.models import Application, Drive, Placement
 from application.permissions import company_permission
+from flask_cache import invalidate_cache
 
 VALID_APPLICATION_STATUSES = (
     "Applied",
@@ -171,6 +172,7 @@ class CompanyDriveList(Resource):
         )
         db.session.add(drive)
         db.session.commit()
+        invalidate_cache()
         return _drive_dict(drive), 201
 
 
@@ -207,6 +209,7 @@ class CompanyDriveDetail(Resource):
                 setattr(drive, field, data[field])
 
         db.session.commit()
+        invalidate_cache()
         return _drive_dict(drive)
 
 

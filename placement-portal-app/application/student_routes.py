@@ -18,6 +18,7 @@ from werkzeug.utils import secure_filename
 from application.database import db
 from application.models import Application, Drive, Placement, Student
 from application.permissions import student_permission
+from flask_cache import cache, invalidate_cache
 
 RESUME_UPLOAD_DIR = os.path.join("static", "resumes")
 ALLOWED_RESUME_EXTENSIONS = {"pdf", "doc", "docx"}
@@ -134,9 +135,18 @@ class StudentProfile(Resource):
         return {"message": "profile updated"}
 
 
+def _student_drives_cache_key(*args, **kwargs):
+    # Eligibility is student-specific, so the cache key must include the
+    # requesting student's id — otherwise one student's cached response
+    # (with their eligible:true/false flags) would leak to another
+    # student hitting the same URL with the same filters.
+    return f"student_drives:{current_user.get_id()}:{request.query_string.decode('utf-8')}"
+
+
 class StudentDriveList(Resource):
     method_decorators = [student_required]
 
+    @cache.cached(timeout=60, make_cache_key=_student_drives_cache_key)
     def get(self):
         student = get_own_student()
         if student is None:
@@ -211,6 +221,7 @@ class StudentApplicationList(Resource):
             db.session.rollback()
             return {"error": "you have already applied to this drive"}, 409
 
+        invalidate_cache()
         return _application_dict(application), 201
 
 

@@ -11,6 +11,7 @@ from flask_restful import Api, Resource
 from application.database import db
 from application.models import Application, Company, Drive, Student
 from application.permissions import admin_permission
+from flask_cache import cache, invalidate_cache
 
 
 def admin_required(method):
@@ -33,6 +34,7 @@ class AdminStats(Resource):
 class AdminCompanyList(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=60, query_string=True, key_prefix="admin_companies")
     def get(self):
         q = request.args.get("q", "").strip()
         status = request.args.get("status")  # pending / approved / rejected
@@ -75,6 +77,7 @@ class AdminCompanyDetail(Resource):
             company.is_blacklisted = bool(data["is_blacklisted"])
 
         db.session.commit()
+        invalidate_cache()
         return {
             "id": company.id,
             "name": company.name,
@@ -119,6 +122,7 @@ class AdminDriveDetail(Resource):
             drive.approval_status = data["approval_status"]
 
         db.session.commit()
+        invalidate_cache()
         return {
             "id": drive.id,
             "title": drive.title,
@@ -129,6 +133,7 @@ class AdminDriveDetail(Resource):
 class AdminStudentList(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=60, query_string=True, key_prefix="admin_students")
     def get(self):
         q = request.args.get("q", "").strip()
         query = Student.query
@@ -161,6 +166,7 @@ class AdminStudentDetail(Resource):
             student.is_blacklisted = bool(data["is_blacklisted"])
 
         db.session.commit()
+        invalidate_cache()
         return {
             "id": student.id,
             "full_name": student.full_name,
