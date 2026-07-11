@@ -300,13 +300,144 @@
     </div>
   </div>
 
-  <!-- OTHER ROLES: placeholder until Milestone 5 -->
+  <!-- STUDENT DASHBOARD -->
+  <div v-else-if="user.roles.includes('student')">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3>Student Dashboard</h3>
+      <div>
+        <span class="text-muted me-3">{{ user.email }}</span>
+        <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
+      </div>
+    </div>
+
+    <div v-if="student.is_blacklisted" class="alert alert-danger">
+      Your account has been blacklisted. You cannot apply to new drives.
+    </div>
+
+    <!-- Profile -->
+    <div class="card mb-4">
+      <div class="card-header">My Profile</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Full Name</label>
+            <input v-model="studentForm.full_name" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contact Number</label>
+            <input v-model="studentForm.contact_number" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Branch</label>
+            <input v-model="studentForm.branch" class="form-control" placeholder="e.g. CSE">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Year</label>
+            <input v-model.number="studentForm.year" type="number" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">CGPA</label>
+            <input v-model.number="studentForm.cgpa" type="number" step="0.01" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Skills (comma-separated)</label>
+            <input v-model="studentForm.skills" class="form-control" placeholder="Python,SQL">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Resume</label>
+            <input type="file" ref="resumeFile" class="form-control" accept=".pdf,.doc,.docx">
+            <div class="form-text" v-if="student.resume_path">Current: {{ student.resume_path.split('/').pop() }}</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Experience</label>
+            <textarea v-model="studentForm.experience" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" @click="saveStudentProfile">Save Profile</button>
+        <button class="btn btn-outline-primary mt-3 ms-2" @click="uploadResume">Upload Resume</button>
+        <span v-if="studentMessage" class="text-success ms-2">{{ studentMessage }}</span>
+      </div>
+    </div>
+
+    <!-- Browse Drives -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Browse Placement Drives</span>
+        <div>
+          <input v-model="driveFilters.company" @keyup.enter="loadDrivesToApply" placeholder="Company" class="form-control form-control-sm d-inline w-auto me-1">
+          <input v-model="driveFilters.title" @keyup.enter="loadDrivesToApply" placeholder="Position" class="form-control form-control-sm d-inline w-auto me-1">
+          <input v-model="driveFilters.skills" @keyup.enter="loadDrivesToApply" placeholder="Skills" class="form-control form-control-sm d-inline w-auto me-1">
+          <div class="form-check form-check-inline">
+            <input type="checkbox" v-model="driveFilters.only_eligible" @change="loadDrivesToApply" class="form-check-input">
+            <label class="form-check-label small">Eligible only</label>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" @click="loadDrivesToApply">Search</button>
+        </div>
+      </div>
+      <table class="table mb-0">
+        <thead><tr><th>Title</th><th>Company</th><th>Salary</th><th>Eligible</th><th>Deadline</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr v-for="d in browseDrives" :key="d.id">
+            <td>{{ d.title }}</td>
+            <td>{{ d.company_name }}</td>
+            <td>{{ d.salary || '—' }}</td>
+            <td><span class="badge" :class="d.eligible ? 'bg-success' : 'bg-secondary'">{{ d.eligible ? 'Yes' : 'No' }}</span></td>
+            <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" :disabled="!d.eligible || appliedDriveIds.includes(d.id)" @click="applyToDrive(d)">
+                {{ appliedDriveIds.includes(d.id) ? 'Applied' : 'Apply' }}
+              </button>
+            </td>
+          </tr>
+          <tr v-if="browseDrives.length === 0"><td colspan="6" class="text-center text-muted">No drives found</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- My Applications -->
+    <div class="card mb-4">
+      <div class="card-header">My Applications</div>
+      <table class="table mb-0">
+        <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Interview</th><th>Feedback</th></tr></thead>
+        <tbody>
+          <tr v-for="a in myApplications" :key="a.id">
+            <td>{{ a.drive_title }}</td>
+            <td>{{ a.company_name }}</td>
+            <td><span class="badge" :class="statusBadgeClass(a.status)">{{ a.status }}</span></td>
+            <td>{{ a.interview_datetime ? a.interview_datetime.replace('T', ' ').slice(0,16) : '—' }}</td>
+            <td>{{ a.feedback || '—' }}</td>
+          </tr>
+          <tr v-if="myApplications.length === 0"><td colspan="5" class="text-center text-muted">No applications yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Placement History -->
+    <div class="card mb-4">
+      <div class="card-header">Placement History</div>
+      <table class="table mb-0">
+        <thead><tr><th>Company</th><th>Position</th><th>Salary</th><th>Confirmed</th><th>Offer Letter</th></tr></thead>
+        <tbody>
+          <tr v-for="p in myPlacements" :key="p.id">
+            <td>{{ p.company_name }}</td>
+            <td>{{ p.position }}</td>
+            <td>{{ p.salary }}</td>
+            <td>{{ p.created_at ? p.created_at.slice(0,10) : '—' }}</td>
+            <td><a :href="'/api/student/placements/' + p.id + '/offer-letter'" class="btn btn-sm btn-outline-primary">Download</a></td>
+          </tr>
+          <tr v-if="myPlacements.length === 0"><td colspan="5" class="text-center text-muted">No placements yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FALLBACK -->
   <div v-else>
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3>Welcome, {{ user.email }}</h3>
       <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
     </div>
-    <p class="text-muted">Role: {{ user.roles.join(', ') }} — dashboard coming in a later milestone.</p>
+    <p class="text-muted">Role: {{ user.roles.join(', ') }}</p>
   </div>
 
 </div>
@@ -336,9 +467,22 @@ new Vue({
     companyDrives: [],
     expandedDriveId: null,
     applicants: [],
+    // student dashboard state
+    student: {},
+    studentForm: {},
+    studentMessage: "",
+    browseDrives: [],
+    driveFilters: { company: "", title: "", skills: "", only_eligible: false },
+    myApplications: [],
+    myPlacements: [],
   },
   created() {
     this.whoami();
+  },
+  computed: {
+    appliedDriveIds() {
+      return this.myApplications.map((a) => a.drive_id);
+    },
   },
   methods: {
     async whoami() {
@@ -347,6 +491,7 @@ new Vue({
         this.user = await res.json();
         if (this.user.roles.includes("admin")) this.loadAdminData();
         if (this.user.roles.includes("company")) this.loadCompanyData();
+        if (this.user.roles.includes("student")) this.loadStudentData();
       }
     },
     async login() {
@@ -522,6 +667,96 @@ new Vue({
         const idx = this.applicants.findIndex((a) => a.id === updated.id);
         if (idx !== -1) this.$set(this.applicants, idx, updated);
       }
+    },
+    async loadStudentData() {
+      await this.loadStudentProfile();
+      await this.loadMyApplications();
+      await this.loadDrivesToApply();
+      await this.loadMyPlacements();
+    },
+    async loadStudentProfile() {
+      const res = await fetch("/api/student/profile", { credentials: "same-origin" });
+      if (res.ok) {
+        this.student = await res.json();
+        this.studentForm = Object.assign({}, this.student);
+      }
+    },
+    async saveStudentProfile() {
+      this.studentMessage = "";
+      const res = await fetch("/api/student/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(this.studentForm),
+      });
+      if (res.ok) {
+        this.studentMessage = "Saved.";
+        await this.loadStudentProfile();
+        setTimeout(() => (this.studentMessage = ""), 2000);
+      }
+    },
+    async uploadResume() {
+      const fileInput = this.$refs.resumeFile;
+      if (!fileInput || !fileInput.files.length) {
+        this.studentMessage = "Choose a file first.";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("resume", fileInput.files[0]);
+      const res = await fetch("/api/student/profile/resume", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
+      });
+      if (res.ok) {
+        this.studentMessage = "Resume uploaded.";
+        await this.loadStudentProfile();
+        setTimeout(() => (this.studentMessage = ""), 2000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        this.studentMessage = data.error || "Upload failed.";
+      }
+    },
+    async loadDrivesToApply() {
+      const params = new URLSearchParams();
+      if (this.driveFilters.company) params.set("company", this.driveFilters.company);
+      if (this.driveFilters.title) params.set("title", this.driveFilters.title);
+      if (this.driveFilters.skills) params.set("skills", this.driveFilters.skills);
+      if (this.driveFilters.only_eligible) params.set("only_eligible", "true");
+      const res = await fetch("/api/student/drives?" + params.toString(), { credentials: "same-origin" });
+      if (res.ok) this.browseDrives = await res.json();
+    },
+    async applyToDrive(drive) {
+      const res = await fetch("/api/student/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ drive_id: drive.id }),
+      });
+      if (res.ok) {
+        await this.loadMyApplications();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not apply.");
+      }
+    },
+    async loadMyApplications() {
+      const res = await fetch("/api/student/applications", { credentials: "same-origin" });
+      if (res.ok) this.myApplications = await res.json();
+    },
+    async loadMyPlacements() {
+      const res = await fetch("/api/student/placements", { credentials: "same-origin" });
+      if (res.ok) this.myPlacements = await res.json();
+    },
+    statusBadgeClass(status) {
+      return {
+        Applied: "bg-secondary",
+        Shortlisted: "bg-info text-dark",
+        Interview: "bg-warning text-dark",
+        Offer: "bg-primary",
+        Rejected: "bg-danger",
+        Placed: "bg-success",
+      }[status] || "bg-secondary";
     },
     badgeClass(status) {
       return {
