@@ -13,12 +13,15 @@
 {% raw %}
 <div id="app" class="container py-4">
 
-  <!-- LOGIN -->
+  <!-- LOGIN / REGISTER -->
   <div v-if="!user" class="row justify-content-center">
     <div class="col-md-5">
-      <h3 class="mb-3">Placement Portal — Sign in</h3>
+      <h3 class="mb-3">Placement Portal — {{ authMode === 'login' ? 'Sign in' : 'Create an account' }}</h3>
       <div v-if="message" class="alert alert-danger">{{ message }}</div>
-      <form @submit.prevent="login">
+      <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+      <!-- LOGIN FORM -->
+      <form v-if="authMode === 'login'" @submit.prevent="login">
         <div class="mb-3">
           <label class="form-label">Email</label>
           <input v-model="loginForm.email" type="email" class="form-control" required>
@@ -29,6 +32,43 @@
         </div>
         <button class="btn btn-primary w-100" type="submit">Log in</button>
       </form>
+
+      <!-- REGISTER FORM -->
+      <form v-else @submit.prevent="register">
+        <div class="mb-3">
+          <label class="form-label">I am a</label>
+          <select v-model="registerForm.role" class="form-select" required>
+            <option value="student">Student</option>
+            <option value="company">Company</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input v-model="registerForm.email" type="email" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input v-model="registerForm.password" type="password" class="form-control" required minlength="6">
+        </div>
+        <div class="mb-3" v-if="registerForm.role === 'student'">
+          <label class="form-label">Full Name</label>
+          <input v-model="registerForm.full_name" class="form-control" required>
+        </div>
+        <div class="mb-3" v-else>
+          <label class="form-label">Company Name</label>
+          <input v-model="registerForm.company_name" class="form-control" required>
+        </div>
+        <button class="btn btn-primary w-100" type="submit">Create account</button>
+        <p v-if="registerForm.role === 'company'" class="text-muted small mt-2">
+          Company accounts require admin approval before you can create drives.
+        </p>
+      </form>
+
+      <p class="text-center mt-3">
+        <a href="#" @click.prevent="toggleAuthMode">
+          {{ authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Log in" }}
+        </a>
+      </p>
     </div>
   </div>
 
@@ -467,6 +507,9 @@ new Vue({
     user: null,
     message: "",
     loginForm: { email: "", password: "" },
+    authMode: "login",
+    successMessage: "",
+    registerForm: { role: "student", email: "", password: "", full_name: "", company_name: "" },
     stats: {},
     companies: [],
     drives: [],
@@ -511,6 +554,32 @@ new Vue({
         if (this.user.roles.includes("student")) this.loadStudentData();
       }
     },
+    toggleAuthMode() {
+  this.message = "";
+  this.successMessage = "";
+  this.authMode = this.authMode === "login" ? "register" : "login";
+},
+async register() {
+  this.message = "";
+  this.successMessage = "";
+  const res = await fetch("/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(this.registerForm),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    this.successMessage = data.status === "pending approval"
+      ? "Account created. Your company is pending admin approval — you can log in once approved."
+      : "Account created. You can log in now.";
+    this.loginForm.email = this.registerForm.email;
+    this.registerForm = { role: "student", email: "", password: "", full_name: "", company_name: "" };
+    this.authMode = "login";
+  } else {
+    this.message = data.error || "Registration failed.";
+  }
+},
     async login() {
       this.message = "";
       const res = await fetch("/login", {

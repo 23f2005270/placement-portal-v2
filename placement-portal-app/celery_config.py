@@ -15,6 +15,10 @@ beat_schedule = {
         "task": "application.tasks.interview_reminder",
         "schedule": crontab(hour=8, minute=0),  # once a day, 8 AM IST
     },
+     "deadline-reminder-daily": {
+        "task": "application.tasks.deadline_reminder",
+        "schedule": crontab(hour=8, minute=30),  # staggered from interview reminder
+    },
     "monthly-placement-report": {
         "task": "application.tasks.monthly_placement_report",
         "schedule": crontab(day_of_month=1, hour=0, minute=0),  # 1st of each month
