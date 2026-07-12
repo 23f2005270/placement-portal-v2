@@ -1,7 +1,7 @@
 import os
 
 from celery.signals import worker_process_init
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_security import Security, SQLAlchemyUserDatastore
 
 from application.database import db
@@ -73,6 +73,15 @@ def create_app():
     @app.route("/")
     def index():
         return render_template("index.html")
+
+    @app.route("/sw.js")
+    def service_worker():
+        # Served at the root path (not /static/sw.js) so the browser
+        # grants it scope '/' by default, letting it control the whole
+        # app instead of just the /static/ subtree.
+        response = send_from_directory(app.static_folder, "sw.js")
+        response.headers["Content-Type"] = "application/javascript"
+        return response
 
     with app.app_context():
         db.create_all()

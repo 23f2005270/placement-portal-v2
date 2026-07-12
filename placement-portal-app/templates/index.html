@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <title>Placement Portal V2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d6efd">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
@@ -65,7 +68,8 @@
           </select>
         </div>
       </div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Name</th><th>Industry</th><th>Status</th><th>Blacklisted</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="c in companies" :key="c.id">
@@ -82,6 +86,7 @@
           <tr v-if="companies.length === 0"><td colspan="5" class="text-center text-muted">No companies found</td></tr>
         </tbody>
       </table>
+</div>
     </div>
 
     <!-- Drives -->
@@ -95,7 +100,8 @@
           <option value="rejected">Rejected</option>
         </select>
       </div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="d in drives" :key="d.id">
@@ -111,6 +117,7 @@
           <tr v-if="drives.length === 0"><td colspan="5" class="text-center text-muted">No drives found</td></tr>
         </tbody>
       </table>
+</div>
     </div>
 
     <!-- Students -->
@@ -119,7 +126,8 @@
         <span>Students</span>
         <input v-model="studentSearch" @keyup.enter="loadStudents" placeholder="Search name/contact" class="form-control form-control-sm d-inline w-auto">
       </div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Name</th><th>Branch</th><th>CGPA</th><th>Blacklisted</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="s in students" :key="s.id">
@@ -134,6 +142,7 @@
           <tr v-if="students.length === 0"><td colspan="5" class="text-center text-muted">No students found</td></tr>
         </tbody>
       </table>
+</div>
     </div>
   </div>
 
@@ -246,7 +255,8 @@
     <!-- Drives list -->
     <div class="card mb-4">
       <div class="card-header">Your Drives</div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Title</th><th>Approval</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
         <tbody>
           <template v-for="d in companyDrives">
@@ -297,6 +307,7 @@
           <tr v-if="companyDrives.length === 0"><td colspan="5" class="text-center text-muted">No drives posted yet</td></tr>
         </tbody>
       </table>
+</div>
     </div>
   </div>
 
@@ -374,7 +385,8 @@
           <button class="btn btn-sm btn-outline-secondary" @click="loadDrivesToApply">Search</button>
         </div>
       </div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Title</th><th>Company</th><th>Salary</th><th>Eligible</th><th>Deadline</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="d in browseDrives" :key="d.id">
@@ -392,12 +404,14 @@
           <tr v-if="browseDrives.length === 0"><td colspan="6" class="text-center text-muted">No drives found</td></tr>
         </tbody>
       </table>
+</div>
     </div>
 
     <!-- My Applications -->
     <div class="card mb-4">
       <div class="card-header">My Applications</div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Interview</th><th>Feedback</th></tr></thead>
         <tbody>
           <tr v-for="a in myApplications" :key="a.id">
@@ -410,12 +424,14 @@
           <tr v-if="myApplications.length === 0"><td colspan="5" class="text-center text-muted">No applications yet</td></tr>
         </tbody>
       </table>
+</div>
     </div>
 
     <!-- Placement History -->
     <div class="card mb-4">
       <div class="card-header">Placement History</div>
-      <table class="table mb-0">
+      <div class="table-responsive">
+<table class="table mb-0">
         <thead><tr><th>Company</th><th>Position</th><th>Salary</th><th>Confirmed</th><th>Offer Letter</th></tr></thead>
         <tbody>
           <tr v-for="p in myPlacements" :key="p.id">
@@ -428,6 +444,7 @@
           <tr v-if="myPlacements.length === 0"><td colspan="5" class="text-center text-muted">No placements yet</td></tr>
         </tbody>
       </table>
+</div>
     </div>
   </div>
 
@@ -769,5 +786,14 @@ new Vue({
 });
 </script>
 {% endraw %}
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.warn("Service worker registration failed:", err);
+      });
+    });
+  }
+</script>
 </body>
 </html>
