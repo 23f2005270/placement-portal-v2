@@ -182,3 +182,21 @@ class Placement(db.Model):
     student = db.relationship("Student", backref="placements")
     company = db.relationship("Company", backref="placements")
 
+class ReminderLog(db.Model):
+    """
+    Idempotency + audit trail for reminder emails. Before sending an
+    interview/deadline reminder, tasks.py checks for a row here first;
+    after a successful send it inserts one. Stops a student getting the
+    same reminder twice if Beat fires an extra run, a task retries, or
+    an admin manually re-triggers the job for a demo.
+    """
+    __tablename__ = "reminder_log"
+    __table_args__ = (
+        db.UniqueConstraint("kind", "student_id", "reference_id", name="uq_reminder_kind_student_ref"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(30), nullable=False)          # "interview" / "deadline"
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    reference_id = db.Column(db.Integer, nullable=False)      # application_id or drive_id
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)

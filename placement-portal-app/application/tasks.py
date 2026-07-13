@@ -4,13 +4,16 @@ monthly_placement_report are scheduled via Celery Beat (see
 celery_config.py). export_csv is user-triggered from a Flask route and
 runs async, with its Celery AsyncResult state acting as the completion
 signal the frontend polls.
+
+This file also includes an async mail task that sends an immediate
+notification to a student when a company updates their application
+status/interview schedule.
 """
 import csv
 import os
 from datetime import datetime, timedelta
 
 from application.celery_app import celery
-from application.database import db
 from application.mail import send_email
 from application.models import Application, Drive, Placement, Role, Student
 
@@ -64,8 +67,6 @@ def deadline_reminder():
     Daily: find approved, active drives whose application deadline falls
     in the next 24 hours, and email every eligible-to-remind student
     (not blacklisted, hasn't already applied) that time is running out.
-    This is the "upcoming application deadline" reminder required by the
-    project statement — distinct from interview_reminder above.
     """
     window_end = datetime.utcnow() + timedelta(hours=24)
     closing_drives = Drive.query.filter(
@@ -105,8 +106,7 @@ def deadline_reminder():
 def monthly_placement_report():
     """
     Runs on the 1st of each month. Builds an HTML summary of the previous
-    ~30 days of placements and emails it to the admin — per the statement's
-    "created using HTML and sent via mail" requirement. Also archives a
+    ~30 days of placements and emails it to the admin. Also archives a
     copy under instance/reports/ so there's a record even if mail delivery
     fails.
     """
@@ -154,8 +154,7 @@ def monthly_placement_report():
 def export_csv(self, student_id):
     """
     User-triggered async CSV export of one student's application history.
-    Returns the file path and row count on completion — polled via the
-    task's AsyncResult state from the frontend.
+    Returns the file path and row count on completion.
     """
     exports_dir = os.path.join("instance", "exports")
     os.makedirs(exports_dir, exist_ok=True)
@@ -166,8 +165,6 @@ def export_csv(self, student_id):
 
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
-        # Column order matches the project statement's spec verbatim:
-        # Student ID, Company Name, Drive Title, Application Status, Dates.
         writer.writerow(
             ["student_id", "company_name", "drive_title", "application_status", "applied_date"]
         )
@@ -184,3 +181,106 @@ def export_csv(self, student_id):
 
     return {"status": "completed", "file": filename, "row_count": len(applications)}
 
+
+@celery.task(name="application.tasks.send_application_update_email")
+def send_application_update_email(application_id, old_status=None, old_interview_datetime=None):
+    """
+    Async mail task fired when a company updates a student's application.
+    Sends an immediate email notification if the status or interview time
+    changed.
+
+    Returns a small status object for debugging/verification in worker logs.
+    """
+    application = Application.query.get(application_id)
+    if application is None:
+        return {"sent": False, "reason": "application_not_found"}
+
+    student = application.student
+    drive = application.drive
+    company = drive.company if drive else None
+
+    if not student or not student.user or not student.user.email or not drive:
+        return {"sent": False, "reason": "missing_student_or_drive_data"}
+
+    new_status = application.status
+    new_interview_datetime = application.interview_datetime
+
+    status_changed = old_status != new_status
+    interview_changed = old_interview_datetime != (
+        new_interview_datetime.isoformat() if new_interview_datetime else None
+    )
+
+    if not status_changed and not interview_changed:
+        return {"sent": False, "reason": "no_relevant_change"}
+
+    student_name = student.full_name or "Student"
+    company_name = company.name if company else "the company"
+    interview_str = (
+        new_interview_datetime.strftime("%d %b %Y, %I:%M %p")
+        if new_interview_datetime
+        else "To be announced"
+    )
+
+    if new_status == "Interview":
+        subject = f"Interview update: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>Interview</strong>.</p>
+        <p><strong>Interview time:</strong> {interview_str}</p>
+        <p>Please log in to the Placement Portal for the latest details.</p>
+        """
+    elif new_status == "Offer":
+        subject = f"Offer update: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Good news — your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>Offer</strong>.</p>
+        <p>Please log in to the Placement Portal to review the latest status.</p>
+        """
+    elif new_status == "Placed":
+        subject = f"Placement confirmed: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Congratulations — your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>Placed</strong>.</p>
+        <p>Please log in to the Placement Portal to view your placement record.</p>
+        """
+    elif new_status == "Rejected":
+        subject = f"Application update: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>Rejected</strong>.</p>
+        <p>Please log in to the Placement Portal for more details.</p>
+        """
+    elif new_status == "Shortlisted":
+        subject = f"Shortlisted: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>Shortlisted</strong>.</p>
+        <p>Please log in to the Placement Portal for the latest updates.</p>
+        """
+    else:
+        subject = f"Application status updated: {drive.title} at {company_name}"
+        html_body = f"""
+        <p>Hi {student_name},</p>
+        <p>Your application for <strong>{drive.title}</strong> at
+        <strong>{company_name}</strong> has been updated to
+        <strong>{new_status}</strong>.</p>
+        <p>Please log in to the Placement Portal for more details.</p>
+        """
+
+    mailed = send_email(student.user.email, subject, html_body)
+    return {
+        "sent": mailed,
+        "application_id": application.id,
+        "student_email": student.user.email,
+        "new_status": new_status,
+    }

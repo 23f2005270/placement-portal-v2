@@ -3,6 +3,9 @@ Company API. All resources require the 'company' role (RBAC via
 Flask-Principal). Past the profile endpoint, actions that create or
 manage drives require the company to be admin-approved and not
 blacklisted — enforced here in code, not just hidden in the UI.
+
+This version triggers an async Celery mail task whenever a company
+updates a student's application status or interview schedule.
 """
 from datetime import datetime
 
@@ -14,6 +17,7 @@ from flask_security import current_user
 from application.database import db
 from application.models import Application, Drive, Placement
 from application.permissions import company_permission
+from application.tasks import send_application_update_email
 from flask_cache import invalidate_cache
 
 VALID_APPLICATION_STATUSES = (
@@ -248,6 +252,13 @@ class CompanyApplicationDetail(Resource):
 
         data = request.get_json(silent=True) or {}
 
+        old_status = application.status
+        old_interview_datetime = (
+            application.interview_datetime.isoformat()
+            if application.interview_datetime
+            else None
+        )
+
         if "status" in data:
             if data["status"] not in VALID_APPLICATION_STATUSES:
                 return {"error": f"status must be one of {VALID_APPLICATION_STATUSES}"}, 400
@@ -282,7 +293,17 @@ class CompanyApplicationDetail(Resource):
 
         db.session.commit()
         invalidate_cache()
-        return _application_dict(application)
+
+        # Trigger async email notification after commit.
+        send_application_update_email.delay(
+            application.id,
+            old_status,
+            old_interview_datetime,
+        )
+
+        result = _application_dict(application)
+        result["notification_queued"] = True
+        return result
 
 
 def register_company_resources(app):
@@ -296,4 +317,3 @@ def register_company_resources(app):
     api.add_resource(
         CompanyApplicationDetail, "/api/company/applications/<int:application_id>"
     )
-

@@ -12,7 +12,9 @@ from flask_security import current_user
 
 from application.celery_app import celery
 from application.tasks import export_csv
-
+from application.permissions import admin_permission
+from application.models import ReminderLog
+from application.tasks import interview_reminder, deadline_reminder, monthly_placement_report
 task_bp = Blueprint("task_bp", __name__)
 
 
@@ -69,3 +71,35 @@ def download_export(task_id):
         download_name=f"my_applications_{student.id}.csv",
     )
 
+
+
+
+def admin_required(method):
+    return login_required(admin_permission.require(http_exception=403)(method))
+
+
+@task_bp.route("/api/admin/reminders/trigger/<kind>", methods=["POST"])
+@admin_required
+def trigger_reminder(kind):
+    """Fire any scheduled job on demand — handy for demoing without waiting for Beat."""
+    mapping = {
+        "interview": interview_reminder,
+        "deadline": deadline_reminder,
+        "monthly-report": monthly_placement_report,
+    }
+    task_fn = mapping.get(kind)
+    if not task_fn:
+        return jsonify({"error": "unknown reminder kind"}), 400
+    task = task_fn.delay()
+    return jsonify({"task_id": task.id, "status": "queued"}), 202
+
+
+@task_bp.route("/api/admin/reminders/log")
+@admin_required
+def reminder_log():
+    logs = ReminderLog.query.order_by(ReminderLog.sent_at.desc()).limit(200).all()
+    return jsonify([
+        {"id": l.id, "kind": l.kind, "student_id": l.student_id,
+         "reference_id": l.reference_id, "sent_at": l.sent_at.isoformat() if l.sent_at else None}
+        for l in logs
+    ])
