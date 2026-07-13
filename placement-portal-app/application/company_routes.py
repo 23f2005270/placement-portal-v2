@@ -57,6 +57,7 @@ def _drive_dict(d):
         "deadline": d.deadline.isoformat() if d.deadline else None,
         "approval_status": d.approval_status,
         "status": d.status,
+        "applicant_count": len(d.applications),
     }
 
 
@@ -294,3 +295,5 @@ def register_company_resources(app):
     api.add_resource(
         CompanyApplicationDetail, "/api/company/applications/<int:application_id>"
     )
+
+

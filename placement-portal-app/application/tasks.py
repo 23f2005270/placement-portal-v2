@@ -166,17 +166,19 @@ def export_csv(self, student_id):
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ["application_id", "drive_title", "company_name", "status", "applied_date"]
+            ["student_id", "company_name", "drive_title", "application_status", "applied_date"]
         )
         for a in applications:
             writer.writerow(
                 [
-                    a.id,
-                    a.drive.title if a.drive else "",
+                    a.student_id,
                     a.drive.company.name if a.drive and a.drive.company else "",
+                    a.drive.title if a.drive else "",
                     a.status,
                     a.applied_date.isoformat() if a.applied_date else "",
                 ]
             )
 
     return {"status": "completed", "file": filename, "row_count": len(applications)}
+
+

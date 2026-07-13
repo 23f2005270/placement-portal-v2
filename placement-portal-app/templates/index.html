@@ -4,19 +4,88 @@
 <meta charset="UTF-8">
 <title>Placement Portal V2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0d6efd">
+<meta name="theme-color" content="#16233F">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#16233F;
+    --navy-light:#233657;
+    --gold:#E3A23C;
+    --gold-dark:#C9861F;
+    --bg:#F5F6FA;
+    --ink:#1D2433;
+    --muted:#6B7280;
+    --line:#E6E8EF;
+    --ok:#1F9D6B;
+    --warn:#E3A23C;
+    --danger:#D6473C;
+  }
+  html,body{background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,sans-serif;}
+  h1,h2,h3,h4,h5,.brand{font-family:"Sora",system-ui,sans-serif;}
+  h3{font-weight:700;letter-spacing:-0.01em;}
+
+  /* Topbar */
+  .pp-topbar{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);
+    color:#fff;border-radius:14px;padding:18px 24px;margin-bottom:24px;
+    display:flex;justify-content:space-between;align-items:center;
+    box-shadow:0 6px 20px rgba(22,35,63,0.18);
+  }
+  .pp-topbar h3{color:#fff;margin:0;font-weight:700;}
+  .pp-topbar .pp-eyebrow{color:var(--gold);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:2px;}
+  .pp-topbar .text-muted{color:#C9D1E3 !important;}
+  .pp-topbar .btn-outline-secondary{color:#fff;border-color:rgba(255,255,255,0.35);}
+  .pp-topbar .btn-outline-secondary:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:#fff;}
+
+  /* Auth screen */
+  .auth-wrap{min-height:80vh;display:flex;align-items:center;}
+  .auth-card{background:#fff;border-radius:16px;padding:36px 34px;box-shadow:0 10px 30px rgba(22,35,63,0.10);border:1px solid var(--line);}
+  .auth-card .pp-eyebrow{color:var(--gold-dark);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
+
+  /* Cards */
+  .card{border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 10px rgba(22,35,63,0.04);margin-bottom:1.5rem !important;}
+  .card-header{background:#fff;border-bottom:1px solid var(--line);font-family:"Sora",sans-serif;font-weight:600;color:var(--navy);border-radius:14px 14px 0 0 !important;padding:14px 18px;}
+  .card-body{padding:20px;}
+
+  /* Stat tiles */
+  .stat-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;transition:transform .15s ease;}
+  .stat-tile:hover{transform:translateY(-2px);}
+  .stat-tile h2{font-family:"Sora",sans-serif;font-weight:800;color:var(--navy);margin-bottom:2px;}
+  .stat-tile .stat-label{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;}
+
+  /* Buttons */
+  .btn-primary{background:var(--navy);border-color:var(--navy);}
+  .btn-primary:hover,.btn-primary:focus{background:var(--navy-light);border-color:var(--navy-light);}
+  .btn-outline-primary{color:var(--navy);border-color:var(--navy);}
+  .btn-outline-primary:hover{background:var(--navy);border-color:var(--navy);}
+  .btn-gold{background:var(--gold);border-color:var(--gold);color:#2b1c05;font-weight:600;}
+  .btn-gold:hover{background:var(--gold-dark);border-color:var(--gold-dark);color:#2b1c05;}
+
+  /* Table */
+  .table thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);font-weight:700;}
+  .table td{vertical-align:middle;}
+
+  /* Badges */
+  .badge{font-weight:600;letter-spacing:.02em;border-radius:6px;padding:.42em .65em;}
+
+  a{color:var(--navy);}
+  ::selection{background:var(--gold);color:#2b1c05;}
+</style>
 </head>
 <body>
 {% raw %}
 <div id="app" class="container py-4">
 
   <!-- LOGIN / REGISTER -->
-  <div v-if="!user" class="row justify-content-center">
+  <div v-if="!user" class="auth-wrap row justify-content-center">
     <div class="col-md-5">
-      <h3 class="mb-3">Placement Portal — {{ authMode === 'login' ? 'Sign in' : 'Create an account' }}</h3>
+      <div class="auth-card">
+      <div class="pp-eyebrow">Placement Portal</div>
+      <h3 class="mb-3">{{ authMode === 'login' ? 'Sign in to your account' : 'Create an account' }}</h3>
       <div v-if="message" class="alert alert-danger">{{ message }}</div>
       <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
 
@@ -69,13 +138,17 @@
           {{ authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Log in" }}
         </a>
       </p>
+      </div>
     </div>
   </div>
 
   <!-- ADMIN DASHBOARD -->
   <div v-else-if="user.roles.includes('admin')">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3>Admin Dashboard</h3>
+    <div class="pp-topbar">
+      <div>
+        <div class="pp-eyebrow">Placement Portal</div>
+        <h3>Admin Dashboard</h3>
+      </div>
       <div>
         <span class="text-muted me-3">{{ user.email }}</span>
         <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
@@ -83,13 +156,11 @@
     </div>
 
     <!-- Stats -->
-    <div class="row mb-4">
+    <div class="row mb-4 g-3">
       <div class="col-md-3" v-for="(value, key) in stats" :key="key">
-        <div class="card text-center">
-          <div class="card-body">
-            <h2>{{ value }}</h2>
-            <div class="text-muted text-capitalize">{{ key }}</div>
-          </div>
+        <div class="stat-tile">
+          <h2>{{ value }}</h2>
+          <div class="stat-label">{{ key }}</div>
         </div>
       </div>
     </div>
@@ -133,28 +204,32 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>Placement Drives</span>
-        <select v-model="driveStatusFilter" @change="loadDrives" class="form-select form-select-sm d-inline w-auto">
-          <option value="">All</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
+        <div>
+          <input v-model="driveSearch" @keyup.enter="loadDrives" placeholder="Search title/company" class="form-control form-control-sm d-inline w-auto me-2">
+          <select v-model="driveStatusFilter" @change="loadDrives" class="form-select form-select-sm d-inline w-auto">
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
       </div>
       <div class="table-responsive">
 <table class="table mb-0">
-        <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="d in drives" :key="d.id">
             <td>{{ d.title }}</td>
             <td>{{ d.company_name || '—' }}</td>
             <td><span class="badge" :class="badgeClass(d.approval_status)">{{ d.approval_status }}</span></td>
+            <td>{{ d.applicant_count ?? 0 }}</td>
             <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
             <td>
               <button class="btn btn-sm btn-success me-1" v-if="d.approval_status !== 'approved'" @click="setDriveStatus(d, 'approved')">Approve</button>
               <button class="btn btn-sm btn-danger" v-if="d.approval_status !== 'rejected'" @click="setDriveStatus(d, 'rejected')">Reject</button>
             </td>
           </tr>
-          <tr v-if="drives.length === 0"><td colspan="5" class="text-center text-muted">No drives found</td></tr>
+          <tr v-if="drives.length === 0"><td colspan="6" class="text-center text-muted">No drives found</td></tr>
         </tbody>
       </table>
 </div>
@@ -184,12 +259,49 @@
       </table>
 </div>
     </div>
+
+    <!-- All Applications -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>All Student Applications</span>
+        <div>
+          <input v-model="applicationSearch" @keyup.enter="loadApplications" placeholder="Search student/drive/company" class="form-control form-control-sm d-inline w-auto me-2">
+          <select v-model="applicationStatusFilter" @change="loadApplications" class="form-select form-select-sm d-inline w-auto">
+            <option value="">All statuses</option>
+            <option>Applied</option>
+            <option>Shortlisted</option>
+            <option>Interview</option>
+            <option>Offer</option>
+            <option>Rejected</option>
+            <option>Placed</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-responsive">
+<table class="table mb-0">
+        <thead><tr><th>Student</th><th>Drive</th><th>Company</th><th>Status</th><th>Applied</th></tr></thead>
+        <tbody>
+          <tr v-for="a in applications" :key="a.id">
+            <td>{{ a.student_name || '—' }}</td>
+            <td>{{ a.drive_title || '—' }}</td>
+            <td>{{ a.company_name || '—' }}</td>
+            <td><span class="badge" :class="statusBadgeClass(a.status)">{{ a.status }}</span></td>
+            <td>{{ a.applied_date ? a.applied_date.slice(0,10) : '—' }}</td>
+          </tr>
+          <tr v-if="applications.length === 0"><td colspan="5" class="text-center text-muted">No applications found</td></tr>
+        </tbody>
+      </table>
+</div>
+    </div>
   </div>
 
   <!-- COMPANY DASHBOARD -->
   <div v-else-if="user.roles.includes('company')">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3>Company Dashboard</h3>
+    <div class="pp-topbar">
+      <div>
+        <div class="pp-eyebrow">Placement Portal</div>
+        <h3>Company Dashboard</h3>
+      </div>
       <div>
         <span class="text-muted me-3">{{ user.email }}</span>
         <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
@@ -297,13 +409,14 @@
       <div class="card-header">Your Drives</div>
       <div class="table-responsive">
 <table class="table mb-0">
-        <thead><tr><th>Title</th><th>Approval</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Title</th><th>Approval</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
         <tbody>
           <template v-for="d in companyDrives">
             <tr :key="'drive-'+d.id">
               <td>{{ d.title }}</td>
               <td><span class="badge" :class="badgeClass(d.approval_status)">{{ d.approval_status }}</span></td>
               <td>{{ d.status }}</td>
+              <td><span class="badge bg-secondary">{{ d.applicant_count ?? 0 }}</span></td>
               <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline-secondary me-1" @click="toggleDriveStatus(d)">
@@ -315,7 +428,7 @@
               </td>
             </tr>
             <tr v-if="expandedDriveId === d.id" :key="'applicants-'+d.id">
-              <td colspan="5" class="bg-light">
+              <td colspan="6" class="bg-light">
                 <div v-if="applicants.length === 0" class="text-muted py-2">No applicants yet.</div>
                 <table class="table table-sm mb-0" v-else>
                   <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Status</th><th>Feedback</th><th>Interview</th><th>Actions</th></tr></thead>
@@ -344,7 +457,7 @@
               </td>
             </tr>
           </template>
-          <tr v-if="companyDrives.length === 0"><td colspan="5" class="text-center text-muted">No drives posted yet</td></tr>
+          <tr v-if="companyDrives.length === 0"><td colspan="6" class="text-center text-muted">No drives posted yet</td></tr>
         </tbody>
       </table>
 </div>
@@ -353,8 +466,11 @@
 
   <!-- STUDENT DASHBOARD -->
   <div v-else-if="user.roles.includes('student')">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3>Student Dashboard</h3>
+    <div class="pp-topbar">
+      <div>
+        <div class="pp-eyebrow">Placement Portal</div>
+        <h3>Student Dashboard</h3>
+      </div>
       <div>
         <span class="text-muted me-3">{{ user.email }}</span>
         <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
@@ -449,7 +565,21 @@
 
     <!-- My Applications -->
     <div class="card mb-4">
-      <div class="card-header">My Applications</div>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>My Applications</span>
+        <div class="d-flex align-items-center">
+          <span v-if="exportState === 'PENDING' || exportState === 'STARTED'" class="text-muted small me-2">
+            <span class="spinner-border spinner-border-sm me-1"></span>Preparing export…
+          </span>
+          <a v-if="exportState === 'SUCCESS' && exportDownloadUrl" :href="exportDownloadUrl"
+             class="btn btn-sm btn-gold me-2" download>Download CSV</a>
+          <span v-if="exportState === 'FAILURE'" class="text-danger small me-2">Export failed — try again.</span>
+          <button class="btn btn-sm btn-outline-primary" :disabled="exportState === 'PENDING' || exportState === 'STARTED'" @click="exportApplicationsCsv">
+            Export as CSV
+          </button>
+        </div>
+      </div>
+      <div v-if="exportAlert" class="alert alert-success mb-0 rounded-0 py-2 small">{{ exportAlert }}</div>
       <div class="table-responsive">
 <table class="table mb-0">
         <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Interview</th><th>Feedback</th></tr></thead>
@@ -517,7 +647,11 @@ new Vue({
     companySearch: "",
     companyStatusFilter: "",
     driveStatusFilter: "",
+    driveSearch: "",
     studentSearch: "",
+    applications: [],
+    applicationSearch: "",
+    applicationStatusFilter: "",
     // company dashboard state
     company: {},
     companyForm: {},
@@ -535,6 +669,12 @@ new Vue({
     driveFilters: { company: "", title: "", skills: "", only_eligible: false },
     myApplications: [],
     myPlacements: [],
+    // CSV export state
+    exportTaskId: null,
+    exportState: null,
+    exportDownloadUrl: "",
+    exportAlert: "",
+    exportPollHandle: null,
   },
   created() {
     this.whoami();
@@ -610,6 +750,7 @@ async register() {
       this.loadCompanies();
       this.loadDrives();
       this.loadStudents();
+      this.loadApplications();
     },
     async loadStats() {
       const res = await fetch("/api/admin/stats", { credentials: "same-origin" });
@@ -643,8 +784,16 @@ async register() {
     async loadDrives() {
       const params = new URLSearchParams();
       if (this.driveStatusFilter) params.set("status", this.driveStatusFilter);
+      if (this.driveSearch) params.set("q", this.driveSearch);
       const res = await fetch("/api/admin/drives?" + params.toString(), { credentials: "same-origin" });
       if (res.ok) this.drives = await res.json();
+    },
+    async loadApplications() {
+      const params = new URLSearchParams();
+      if (this.applicationStatusFilter) params.set("status", this.applicationStatusFilter);
+      if (this.applicationSearch) params.set("q", this.applicationSearch);
+      const res = await fetch("/api/admin/applications?" + params.toString(), { credentials: "same-origin" });
+      if (res.ok) this.applications = await res.json();
     },
     async setDriveStatus(drive, status) {
       const res = await fetch(`/api/admin/drives/${drive.id}`, {
@@ -834,6 +983,41 @@ async register() {
       const res = await fetch("/api/student/placements", { credentials: "same-origin" });
       if (res.ok) this.myPlacements = await res.json();
     },
+    async exportApplicationsCsv() {
+      this.exportAlert = "";
+      this.exportDownloadUrl = "";
+      const res = await fetch("/api/student/export-csv", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        this.exportState = "FAILURE";
+        return;
+      }
+      const data = await res.json();
+      this.exportTaskId = data.task_id;
+      this.exportState = "PENDING";
+      this.pollExportStatus();
+    },
+    pollExportStatus() {
+      if (this.exportPollHandle) clearInterval(this.exportPollHandle);
+      this.exportPollHandle = setInterval(async () => {
+        if (!this.exportTaskId) return;
+        const res = await fetch(`/api/tasks/${this.exportTaskId}/status`, { credentials: "same-origin" });
+        if (!res.ok) return;
+        const data = await res.json();
+        this.exportState = data.state;
+        if (data.state === "SUCCESS") {
+          clearInterval(this.exportPollHandle);
+          this.exportDownloadUrl = `/api/student/export-csv/${this.exportTaskId}/download`;
+          const rows = data.result && data.result.row_count;
+          this.exportAlert = `Your export is ready${rows !== undefined ? ` (${rows} row${rows === 1 ? "" : "s"})` : ""} — download it below.`;
+          setTimeout(() => (this.exportAlert = ""), 6000);
+        } else if (data.state === "FAILURE") {
+          clearInterval(this.exportPollHandle);
+        }
+      }, 1500);
+    },
     statusBadgeClass(status) {
       return {
         Applied: "bg-secondary",
@@ -866,3 +1050,4 @@ async register() {
 </script>
 </body>
 </html>
+
