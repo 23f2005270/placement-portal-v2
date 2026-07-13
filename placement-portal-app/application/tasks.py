@@ -162,16 +162,19 @@ def export_csv(self, student_id):
     filename = os.path.join(exports_dir, f"export_{self.request.id}.csv")
 
     applications = Application.query.filter_by(student_id=student_id).all()
+    student = Student.query.get(student_id)
 
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
+        # Column order matches the project statement's spec verbatim:
+        # Student ID, Company Name, Drive Title, Application Status, Dates.
         writer.writerow(
             ["student_id", "company_name", "drive_title", "application_status", "applied_date"]
         )
         for a in applications:
             writer.writerow(
                 [
-                    a.student_id,
+                    student.id if student else student_id,
                     a.drive.company.name if a.drive and a.drive.company else "",
                     a.drive.title if a.drive else "",
                     a.status,
@@ -180,5 +183,4 @@ def export_csv(self, student_id):
             )
 
     return {"status": "completed", "file": filename, "row_count": len(applications)}
-
 

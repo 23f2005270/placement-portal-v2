@@ -5,3 +5,4 @@ else that needs `db` without triggering a circular import.
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+

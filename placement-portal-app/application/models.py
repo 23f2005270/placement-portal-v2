@@ -181,3 +181,4 @@ class Placement(db.Model):
 
     student = db.relationship("Student", backref="placements")
     company = db.relationship("Company", backref="placements")
+

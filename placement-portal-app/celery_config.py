@@ -24,3 +24,4 @@ beat_schedule = {
         "schedule": crontab(day_of_month=1, hour=0, minute=0),  # 1st of each month
     },
 }
+

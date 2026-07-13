@@ -4,629 +4,892 @@
 <meta charset="UTF-8">
 <title>Placement Portal V2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#16233F">
+<meta name="theme-color" content="#1B2430">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --navy:#16233F;
-    --navy-light:#233657;
-    --gold:#E3A23C;
-    --gold-dark:#C9861F;
-    --bg:#F5F6FA;
-    --ink:#1D2433;
-    --muted:#6B7280;
-    --line:#E6E8EF;
-    --ok:#1F9D6B;
-    --warn:#E3A23C;
-    --danger:#D6473C;
+  /* =====================================================================
+     DESIGN TOKENS
+     A campus placement office runs on a ledger: intake, review, decide,
+     file. The palette and the left-edge status bar on every row lean
+     into that — this reads like a registrar's desk, not a generic SaaS
+     dashboard. Ink + paper for structure, one working accent (emerald)
+     for "go", amber for "waiting", rust for "no".
+  ===================================================================== */
+  :root {
+    --ink: #1B2430;
+    --ink-soft: #384252;
+    --paper: #F6F5F1;
+    --surface: #FFFFFF;
+    --border: #E4E1D8;
+    --border-soft: #EEECE4;
+    --muted: #6B7280;
+    --accent: #2F6F52;
+    --accent-ink: #1F4A38;
+    --accent-soft: #E7F0EA;
+    --amber: #B8792D;
+    --amber-soft: #FBF0E1;
+    --rust: #A6402E;
+    --rust-soft: #FBEAE6;
+    --slate: #55606E;
+    --slate-soft: #EEF0F2;
+    --radius: 10px;
+    --radius-sm: 7px;
+    --shadow-card: 0 1px 2px rgba(27,36,48,0.04), 0 1px 12px rgba(27,36,48,0.05);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  html,body{background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,sans-serif;}
-  h1,h2,h3,h4,h5,.brand{font-family:"Sora",system-ui,sans-serif;}
-  h3{font-weight:700;letter-spacing:-0.01em;}
 
-  /* Topbar */
-  .pp-topbar{
-    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);
-    color:#fff;border-radius:14px;padding:18px 24px;margin-bottom:24px;
-    display:flex;justify-content:space-between;align-items:center;
-    box-shadow:0 6px 20px rgba(22,35,63,0.18);
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
   }
-  .pp-topbar h3{color:#fff;margin:0;font-weight:700;}
-  .pp-topbar .pp-eyebrow{color:var(--gold);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:2px;}
-  .pp-topbar .text-muted{color:#C9D1E3 !important;}
-  .pp-topbar .btn-outline-secondary{color:#fff;border-color:rgba(255,255,255,0.35);}
-  .pp-topbar .btn-outline-secondary:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:#fff;}
 
-  /* Auth screen */
-  .auth-wrap{min-height:80vh;display:flex;align-items:center;}
-  .auth-card{background:#fff;border-radius:16px;padding:36px 34px;box-shadow:0 10px 30px rgba(22,35,63,0.10);border:1px solid var(--line);}
-  .auth-card .pp-eyebrow{color:var(--gold-dark);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
+  .app-shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 64px; }
 
-  /* Cards */
-  .card{border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 10px rgba(22,35,63,0.04);margin-bottom:1.5rem !important;}
-  .card-header{background:#fff;border-bottom:1px solid var(--line);font-family:"Sora",sans-serif;font-weight:600;color:var(--navy);border-radius:14px 14px 0 0 !important;padding:14px 18px;}
-  .card-body{padding:20px;}
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
 
-  /* Stat tiles */
-  .stat-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;transition:transform .15s ease;}
-  .stat-tile:hover{transform:translateY(-2px);}
-  .stat-tile h2{font-family:"Sora",sans-serif;font-weight:800;color:var(--navy);margin-bottom:2px;}
-  .stat-tile .stat-label{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;}
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-  /* Buttons */
-  .btn-primary{background:var(--navy);border-color:var(--navy);}
-  .btn-primary:hover,.btn-primary:focus{background:var(--navy-light);border-color:var(--navy-light);}
-  .btn-outline-primary{color:var(--navy);border-color:var(--navy);}
-  .btn-outline-primary:hover{background:var(--navy);border-color:var(--navy);}
-  .btn-gold{background:var(--gold);border-color:var(--gold);color:#2b1c05;font-weight:600;}
-  .btn-gold:hover{background:var(--gold-dark);border-color:var(--gold-dark);color:#2b1c05;}
+  /* ---------- Topbar ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 9px; background: var(--ink);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .brand-text h1 {
+    font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -0.01em;
+  }
+  .brand-text .eyebrow { margin-bottom: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .role-chip {
+    text-transform: uppercase; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; padding: 5px 10px; border-radius: 999px;
+    background: var(--slate-soft); color: var(--slate);
+  }
+  .role-chip.role-admin { background: var(--ink); color: #fff; }
+  .role-chip.role-company { background: var(--amber-soft); color: var(--amber); }
+  .role-chip.role-student { background: var(--accent-soft); color: var(--accent-ink); }
+  .user-email { color: var(--muted); font-size: 13.5px; }
 
-  /* Table */
-  .table thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);font-weight:700;}
-  .table td{vertical-align:middle;}
+  /* ---------- Typography helpers ---------- */
+  .eyebrow {
+    text-transform: uppercase; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; color: var(--muted); display: block;
+  }
+  h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.01em; }
+  .section-title { font-size: 20px; font-weight: 700; margin: 0 0 2px; }
+  .section-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 18px; }
+  .tabular { font-variant-numeric: tabular-nums; }
 
-  /* Badges */
-  .badge{font-weight:600;letter-spacing:.02em;border-radius:6px;padding:.42em .65em;}
+  /* ---------- Buttons ---------- */
+  .btn { border-radius: var(--radius-sm); font-weight: 600; font-size: 13.5px; }
+  .btn-primary {
+    background: var(--ink); border-color: var(--ink);
+  }
+  .btn-primary:hover, .btn-primary:focus { background: #0F1620; border-color: #0F1620; }
+  .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-accent:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; }
+  .btn-outline-secondary { border-color: var(--border); color: var(--ink-soft); }
+  .btn-outline-secondary:hover { background: var(--slate-soft); border-color: var(--border); color: var(--ink); }
+  .btn-sm { font-size: 12.5px; }
 
-  a{color:var(--navy);}
-  ::selection{background:var(--gold);color:#2b1c05;}
+  /* ---------- Forms ---------- */
+  .form-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .form-control, .form-select {
+    border-color: var(--border); border-radius: var(--radius-sm); font-size: 14px;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow-card); margin-bottom: 22px;
+  }
+  .card-header {
+    background: var(--surface); border-bottom: 1px solid var(--border-soft);
+    font-weight: 700; font-size: 14px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .card-body { padding: 18px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .toolbar .form-control, .toolbar .form-select { font-size: 13px; padding: 5px 10px; height: auto; }
+
+  /* ---------- Auth screen ---------- */
+  .auth-wrap { min-height: calc(100vh - 90px); display: flex; align-items: center; }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: var(--shadow-card);
+  }
+  .auth-brand-panel {
+    background: var(--ink); color: #fff; padding: 34px 28px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 100%;
+  }
+  .auth-brand-panel .brand-mark { background: var(--accent); }
+  .auth-brand-panel h2 { color: #fff; font-size: 22px; margin: 18px 0 10px; }
+  .auth-brand-panel p { color: #C7CCD4; font-size: 13.5px; line-height: 1.6; }
+  .auth-brand-panel .ledger { margin-top: 24px; font-size: 12.5px; color: #9AA3AF; }
+  .auth-brand-panel .ledger div { padding: 5px 0; border-top: 1px solid #2A3542; }
+  .auth-form-panel { padding: 34px 30px; }
+
+  /* ---------- Alerts (inline, not toasts) ---------- */
+  .alert { border-radius: var(--radius-sm); font-size: 13.5px; border: 1px solid transparent; }
+  .alert-danger { background: var(--rust-soft); color: var(--rust); border-color: #F2D3CC; }
+  .alert-success { background: var(--accent-soft); color: var(--accent-ink); border-color: #CFE3D6; }
+  .alert-warning { background: var(--amber-soft); color: var(--amber); border-color: #F0DCBE; }
+
+  /* ---------- Ledger stat cards ---------- */
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; border-left: 3px solid var(--ink); box-shadow: var(--shadow-card);
+    height: 100%;
+  }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; line-height: 1.1; }
+  .stat-card .stat-label {
+    text-transform: uppercase; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; color: var(--muted); margin-top: 4px; display: block;
+  }
+  .stat-card.stat-students { border-left-color: var(--accent); }
+  .stat-card.stat-companies { border-left-color: var(--amber); }
+  .stat-card.stat-drives { border-left-color: var(--slate); }
+  .stat-card.stat-applications { border-left-color: var(--ink); }
+
+  /* ---------- Tabs (admin) ---------- */
+  .ledger-tabs {
+    display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .ledger-tabs button {
+    background: none; border: none; padding: 10px 4px; margin-right: 22px;
+    font-size: 13.5px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer;
+  }
+  .ledger-tabs button:hover { color: var(--ink); }
+  .ledger-tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .ledger-tabs button .tab-count {
+    font-size: 11px; background: var(--slate-soft); color: var(--slate);
+    border-radius: 999px; padding: 1px 7px; margin-left: 5px; font-weight: 700;
+  }
+
+  /* ---------- Tables (ledger rows) ---------- */
+  .ledger-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .ledger-table thead th {
+    text-align: left; text-transform: uppercase; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.05em; color: var(--muted); padding: 9px 14px;
+    border-bottom: 1px solid var(--border); background: #FBFAF7;
+    position: sticky; top: 0;
+  }
+  .ledger-table tbody tr { border-bottom: 1px solid var(--border-soft); position: relative; }
+  .ledger-table tbody tr:hover { background: #FBFAF7; }
+  .ledger-table tbody tr.row-pending { box-shadow: inset 3px 0 0 var(--amber); }
+  .ledger-table tbody tr.row-approved,
+  .ledger-table tbody tr.row-active { box-shadow: inset 3px 0 0 var(--accent); }
+  .ledger-table tbody tr.row-rejected,
+  .ledger-table tbody tr.row-closed,
+  .ledger-table tbody tr.row-blacklisted { box-shadow: inset 3px 0 0 var(--rust); }
+  .ledger-table td { padding: 10px 14px; vertical-align: middle; color: var(--ink-soft); }
+  .ledger-table td.primary-cell { color: var(--ink); font-weight: 600; }
+  .table-scroll { overflow-x: auto; }
+
+  /* ---------- Badges (status pills with dot) ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+    font-weight: 700; padding: 3px 9px 3px 7px; border-radius: 999px;
+    text-transform: capitalize;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill-pending, .pill-interview { background: var(--amber-soft); color: var(--amber); }
+  .pill-approved, .pill-active, .pill-offer, .pill-placed, .pill-shortlisted { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill-rejected, .pill-closed, .pill-blacklisted { background: var(--rust-soft); color: var(--rust); }
+  .pill-applied { background: var(--slate-soft); color: var(--slate); }
+  .pill-neutral { background: var(--slate-soft); color: var(--slate); }
+
+  /* ---------- Empty / loading states ---------- */
+  .state-row td { padding: 30px 14px; text-align: center; color: var(--muted); font-size: 13.5px; }
+  .state-row .state-title { color: var(--ink-soft); font-weight: 600; margin-bottom: 2px; }
+  .spinner-row { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+
+  /* ---------- Applicant drilldown ---------- */
+  .drilldown { background: #FBFAF7; }
+  .applicant-mini-table th, .applicant-mini-table td { padding: 7px 10px; font-size: 12.5px; }
+
+  /* ---------- Toasts ---------- */
+  .toast-stack {
+    position: fixed; top: 18px; right: 18px; z-index: 2000;
+    display: flex; flex-direction: column; gap: 10px; width: 320px; max-width: calc(100vw - 36px);
+  }
+  .ppa-toast {
+    background: var(--ink); color: #fff; border-radius: var(--radius-sm);
+    padding: 12px 14px; box-shadow: 0 8px 24px rgba(15,22,32,0.28);
+    display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px;
+    border-left: 4px solid var(--accent);
+    animation: toast-in 0.18s ease-out;
+  }
+  .ppa-toast.toast-error { border-left-color: #E38676; }
+  .ppa-toast.toast-info { border-left-color: #9CB6D9; }
+  .ppa-toast .toast-msg { flex: 1; line-height: 1.4; }
+  .ppa-toast .toast-close {
+    background: none; border: none; color: #9AA3AF; cursor: pointer; font-size: 15px;
+    line-height: 1; padding: 0;
+  }
+  .ppa-toast .toast-close:hover { color: #fff; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ---------- Export card ---------- */
+  .export-status-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  @media (max-width: 767px) {
+    .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .card-header { flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
 {% raw %}
-<div id="app" class="container py-4">
+<div id="app">
 
-  <!-- LOGIN / REGISTER -->
-  <div v-if="!user" class="auth-wrap row justify-content-center">
-    <div class="col-md-5">
-      <div class="auth-card">
-      <div class="pp-eyebrow">Placement Portal</div>
-      <h3 class="mb-3">{{ authMode === 'login' ? 'Sign in to your account' : 'Create an account' }}</h3>
-      <div v-if="message" class="alert alert-danger">{{ message }}</div>
-      <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
-
-      <!-- LOGIN FORM -->
-      <form v-if="authMode === 'login'" @submit.prevent="login">
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input v-model="loginForm.email" type="email" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input v-model="loginForm.password" type="password" class="form-control" required>
-        </div>
-        <button class="btn btn-primary w-100" type="submit">Log in</button>
-      </form>
-
-      <!-- REGISTER FORM -->
-      <form v-else @submit.prevent="register">
-        <div class="mb-3">
-          <label class="form-label">I am a</label>
-          <select v-model="registerForm.role" class="form-select" required>
-            <option value="student">Student</option>
-            <option value="company">Company</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input v-model="registerForm.email" type="email" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input v-model="registerForm.password" type="password" class="form-control" required minlength="6">
-        </div>
-        <div class="mb-3" v-if="registerForm.role === 'student'">
-          <label class="form-label">Full Name</label>
-          <input v-model="registerForm.full_name" class="form-control" required>
-        </div>
-        <div class="mb-3" v-else>
-          <label class="form-label">Company Name</label>
-          <input v-model="registerForm.company_name" class="form-control" required>
-        </div>
-        <button class="btn btn-primary w-100" type="submit">Create account</button>
-        <p v-if="registerForm.role === 'company'" class="text-muted small mt-2">
-          Company accounts require admin approval before you can create drives.
-        </p>
-      </form>
-
-      <p class="text-center mt-3">
-        <a href="#" @click.prevent="toggleAuthMode">
-          {{ authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Log in" }}
-        </a>
-      </p>
-      </div>
+  <!-- TOASTS -->
+  <div class="toast-stack">
+    <div class="ppa-toast" :class="'toast-' + t.type" v-for="t in toasts" :key="t.id">
+      <div class="toast-msg">{{ t.message }}</div>
+      <button class="toast-close" @click="dismissToast(t.id)">&times;</button>
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD -->
-  <div v-else-if="user.roles.includes('admin')">
-    <div class="pp-topbar">
-      <div>
-        <div class="pp-eyebrow">Placement Portal</div>
-        <h3>Admin Dashboard</h3>
+  <div class="app-shell">
+
+    <!-- TOPBAR (only once signed in) -->
+    <div class="topbar" v-if="user">
+      <div class="brand">
+        <div class="brand-mark">PPA</div>
+        <div class="brand-text">
+          <span class="eyebrow">Placement Portal &middot; V2</span>
+          <h1>{{ dashboardTitle }}</h1>
+        </div>
       </div>
-      <div>
-        <span class="text-muted me-3">{{ user.email }}</span>
+      <div class="topbar-right">
+        <span class="role-chip" :class="'role-' + primaryRole">{{ primaryRole }}</span>
+        <span class="user-email d-none d-sm-inline">{{ user.email }}</span>
         <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="row mb-4 g-3">
-      <div class="col-md-3" v-for="(value, key) in stats" :key="key">
-        <div class="stat-tile">
-          <h2>{{ value }}</h2>
-          <div class="stat-label">{{ key }}</div>
+    <!-- LOGIN / REGISTER -->
+    <div v-if="!user" class="auth-wrap">
+      <div class="row justify-content-center w-100">
+        <div class="col-lg-8 col-xl-7">
+          <div class="auth-card row g-0">
+            <div class="col-md-5 auth-brand-panel">
+              <div>
+                <div class="brand-mark">PPA</div>
+                <h2>Campus placements,<br>run like a ledger.</h2>
+                <p>One system for the placement cell, recruiting companies, and students &mdash; approvals, drives, applications, and offers, all tracked in one place.</p>
+              </div>
+              <div class="ledger">
+                <div>Admin reviews every company &amp; drive</div>
+                <div>Companies post drives once approved</div>
+                <div>Students apply, track status, get placed</div>
+              </div>
+            </div>
+            <div class="col-md-7 auth-form-panel">
+              <h3 class="section-title">{{ authMode === 'login' ? 'Sign in' : 'Create an account' }}</h3>
+              <p class="section-sub">{{ authMode === 'login' ? 'Welcome back — pick up where you left off.' : 'Students and companies register here. Admin access is pre-provisioned.' }}</p>
+
+              <div v-if="message" class="alert alert-danger py-2 px-3 mb-3">{{ message }}</div>
+              <div v-if="successMessage" class="alert alert-success py-2 px-3 mb-3">{{ successMessage }}</div>
+
+              <!-- LOGIN FORM -->
+              <form v-if="authMode === 'login'" @submit.prevent="login">
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input v-model="loginForm.email" type="email" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password</label>
+                  <input v-model="loginForm.password" type="password" class="form-control" required>
+                </div>
+                <button class="btn btn-primary w-100" type="submit" :disabled="authBusy">
+                  {{ authBusy ? 'Signing in…' : 'Log in' }}
+                </button>
+              </form>
+
+              <!-- REGISTER FORM -->
+              <form v-else @submit.prevent="register">
+                <div class="mb-3">
+                  <label class="form-label">I am a</label>
+                  <select v-model="registerForm.role" class="form-select" required>
+                    <option value="student">Student</option>
+                    <option value="company">Company</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input v-model="registerForm.email" type="email" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password</label>
+                  <input v-model="registerForm.password" type="password" class="form-control" required minlength="6">
+                </div>
+                <div class="mb-3" v-if="registerForm.role === 'student'">
+                  <label class="form-label">Full Name</label>
+                  <input v-model="registerForm.full_name" class="form-control" required>
+                </div>
+                <div class="mb-3" v-else>
+                  <label class="form-label">Company Name</label>
+                  <input v-model="registerForm.company_name" class="form-control" required>
+                </div>
+                <button class="btn btn-primary w-100" type="submit" :disabled="authBusy">
+                  {{ authBusy ? 'Creating account…' : 'Create account' }}
+                </button>
+                <p v-if="registerForm.role === 'company'" class="text-muted small mt-2 mb-0">
+                  Company accounts require admin approval before you can create drives.
+                </p>
+              </form>
+
+              <p class="text-center mt-3 mb-0">
+                <a href="#" @click.prevent="toggleAuthMode">
+                  {{ authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Log in" }}
+                </a>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Companies -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Companies</span>
-        <div>
-          <input v-model="companySearch" @keyup.enter="loadCompanies" placeholder="Search name/industry" class="form-control form-control-sm d-inline w-auto me-2">
-          <select v-model="companyStatusFilter" @change="loadCompanies" class="form-select form-select-sm d-inline w-auto">
-            <option value="">All</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Name</th><th>Industry</th><th>Status</th><th>Blacklisted</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="c in companies" :key="c.id">
-            <td>{{ c.name }}</td>
-            <td>{{ c.industry || '—' }}</td>
-            <td><span class="badge" :class="badgeClass(c.approval_status)">{{ c.approval_status }}</span></td>
-            <td>{{ c.is_blacklisted ? 'Yes' : 'No' }}</td>
-            <td>
-              <button class="btn btn-sm btn-success me-1" v-if="c.approval_status !== 'approved'" @click="setCompanyStatus(c, 'approved')">Approve</button>
-              <button class="btn btn-sm btn-danger me-1" v-if="c.approval_status !== 'rejected'" @click="setCompanyStatus(c, 'rejected')">Reject</button>
-              <button class="btn btn-sm btn-outline-dark" @click="toggleCompanyBlacklist(c)">{{ c.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
-            </td>
-          </tr>
-          <tr v-if="companies.length === 0"><td colspan="5" class="text-center text-muted">No companies found</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
+    <!-- ADMIN DASHBOARD -->
+    <div v-else-if="user.roles.includes('admin')">
 
-    <!-- Drives -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Placement Drives</span>
-        <div>
-          <input v-model="driveSearch" @keyup.enter="loadDrives" placeholder="Search title/company" class="form-control form-control-sm d-inline w-auto me-2">
-          <select v-model="driveStatusFilter" @change="loadDrives" class="form-select form-select-sm d-inline w-auto">
-            <option value="">All</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="d in drives" :key="d.id">
-            <td>{{ d.title }}</td>
-            <td>{{ d.company_name || '—' }}</td>
-            <td><span class="badge" :class="badgeClass(d.approval_status)">{{ d.approval_status }}</span></td>
-            <td>{{ d.applicant_count ?? 0 }}</td>
-            <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
-            <td>
-              <button class="btn btn-sm btn-success me-1" v-if="d.approval_status !== 'approved'" @click="setDriveStatus(d, 'approved')">Approve</button>
-              <button class="btn btn-sm btn-danger" v-if="d.approval_status !== 'rejected'" @click="setDriveStatus(d, 'rejected')">Reject</button>
-            </td>
-          </tr>
-          <tr v-if="drives.length === 0"><td colspan="6" class="text-center text-muted">No drives found</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
-
-    <!-- Students -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Students</span>
-        <input v-model="studentSearch" @keyup.enter="loadStudents" placeholder="Search name/contact" class="form-control form-control-sm d-inline w-auto">
-      </div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Name</th><th>Branch</th><th>CGPA</th><th>Blacklisted</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="s in students" :key="s.id">
-            <td>{{ s.full_name }}</td>
-            <td>{{ s.branch || '—' }}</td>
-            <td>{{ s.cgpa ?? '—' }}</td>
-            <td>{{ s.is_blacklisted ? 'Yes' : 'No' }}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-dark" @click="toggleStudentBlacklist(s)">{{ s.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
-            </td>
-          </tr>
-          <tr v-if="students.length === 0"><td colspan="5" class="text-center text-muted">No students found</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
-
-    <!-- All Applications -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>All Student Applications</span>
-        <div>
-          <input v-model="applicationSearch" @keyup.enter="loadApplications" placeholder="Search student/drive/company" class="form-control form-control-sm d-inline w-auto me-2">
-          <select v-model="applicationStatusFilter" @change="loadApplications" class="form-select form-select-sm d-inline w-auto">
-            <option value="">All statuses</option>
-            <option>Applied</option>
-            <option>Shortlisted</option>
-            <option>Interview</option>
-            <option>Offer</option>
-            <option>Rejected</option>
-            <option>Placed</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Student</th><th>Drive</th><th>Company</th><th>Status</th><th>Applied</th></tr></thead>
-        <tbody>
-          <tr v-for="a in applications" :key="a.id">
-            <td>{{ a.student_name || '—' }}</td>
-            <td>{{ a.drive_title || '—' }}</td>
-            <td>{{ a.company_name || '—' }}</td>
-            <td><span class="badge" :class="statusBadgeClass(a.status)">{{ a.status }}</span></td>
-            <td>{{ a.applied_date ? a.applied_date.slice(0,10) : '—' }}</td>
-          </tr>
-          <tr v-if="applications.length === 0"><td colspan="5" class="text-center text-muted">No applications found</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
-  </div>
-
-  <!-- COMPANY DASHBOARD -->
-  <div v-else-if="user.roles.includes('company')">
-    <div class="pp-topbar">
-      <div>
-        <div class="pp-eyebrow">Placement Portal</div>
-        <h3>Company Dashboard</h3>
-      </div>
-      <div>
-        <span class="text-muted me-3">{{ user.email }}</span>
-        <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
-      </div>
-    </div>
-
-    <div v-if="company.approval_status === 'pending'" class="alert alert-warning">
-      Your registration is pending admin approval. You can edit your profile now, but you won't be able to post drives until an admin approves your account.
-    </div>
-    <div v-if="company.approval_status === 'rejected'" class="alert alert-danger">
-      Your registration was rejected by the admin.
-    </div>
-    <div v-if="company.is_blacklisted" class="alert alert-danger">
-      Your account has been blacklisted.
-    </div>
-
-    <!-- Profile -->
-    <div class="card mb-4">
-      <div class="card-header">Company Profile</div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Company Name</label>
-            <input v-model="companyForm.name" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Industry</label>
-            <input v-model="companyForm.industry" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Location</label>
-            <input v-model="companyForm.location" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Website</label>
-            <input v-model="companyForm.website" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">HR Contact Name</label>
-            <input v-model="companyForm.hr_contact_name" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">HR Contact Phone</label>
-            <input v-model="companyForm.hr_contact_phone" class="form-control">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Description</label>
-            <textarea v-model="companyForm.description" class="form-control" rows="2"></textarea>
+      <!-- Stats -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card stat-students">
+            <span class="stat-value tabular">{{ stats.students ?? '—' }}</span>
+            <span class="stat-label">Students</span>
           </div>
         </div>
-        <button class="btn btn-primary mt-3" @click="saveCompanyProfile">Save Profile</button>
-        <span v-if="companyMessage" class="text-success ms-2">{{ companyMessage }}</span>
-      </div>
-    </div>
-
-    <!-- Create Drive (only once approved) -->
-    <div class="card mb-4" v-if="company.approval_status === 'approved' && !company.is_blacklisted">
-      <div class="card-header">Post a New Placement Drive</div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Title</label>
-            <input v-model="driveForm.title" class="form-control" placeholder="e.g. SDE Intern">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Salary</label>
-            <input v-model="driveForm.salary" class="form-control" placeholder="e.g. 12 LPA">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Description</label>
-            <textarea v-model="driveForm.description" class="form-control" rows="2"></textarea>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Eligible Branches (comma-separated)</label>
-            <input v-model="driveForm.eligible_branches" class="form-control" placeholder="CSE,IT">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Min CGPA</label>
-            <input v-model.number="driveForm.min_cgpa" type="number" step="0.1" class="form-control">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Eligible Years (comma-separated)</label>
-            <input v-model="driveForm.eligible_years" class="form-control" placeholder="3,4">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Skills Required</label>
-            <input v-model="driveForm.skills_required" class="form-control" placeholder="Python,SQL">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Deadline</label>
-            <input v-model="driveForm.deadline" type="datetime-local" class="form-control">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Benefits</label>
-            <input v-model="driveForm.benefits" class="form-control">
+        <div class="col-6 col-md-3">
+          <div class="stat-card stat-companies">
+            <span class="stat-value tabular">{{ stats.companies ?? '—' }}</span>
+            <span class="stat-label">Companies</span>
           </div>
         </div>
-        <button class="btn btn-primary mt-3" @click="createDrive">Submit Drive for Approval</button>
-        <span v-if="driveMessage" class="text-success ms-2">{{ driveMessage }}</span>
+        <div class="col-6 col-md-3">
+          <div class="stat-card stat-drives">
+            <span class="stat-value tabular">{{ stats.drives ?? '—' }}</span>
+            <span class="stat-label">Placement Drives</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card stat-applications">
+            <span class="stat-value tabular">{{ stats.applications ?? '—' }}</span>
+            <span class="stat-label">Applications</span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Drives list -->
-    <div class="card mb-4">
-      <div class="card-header">Your Drives</div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Title</th><th>Approval</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
-        <tbody>
-          <template v-for="d in companyDrives">
-            <tr :key="'drive-'+d.id">
-              <td>{{ d.title }}</td>
-              <td><span class="badge" :class="badgeClass(d.approval_status)">{{ d.approval_status }}</span></td>
-              <td>{{ d.status }}</td>
-              <td><span class="badge bg-secondary">{{ d.applicant_count ?? 0 }}</span></td>
-              <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
+      <div class="ledger-tabs">
+        <button :class="{active: adminTab==='companies'}" @click="switchAdminTab('companies')">
+          Companies <span class="tab-count" v-if="companies.length">{{ companies.length }}</span>
+        </button>
+        <button :class="{active: adminTab==='drives'}" @click="switchAdminTab('drives')">
+          Drives <span class="tab-count" v-if="drives.length">{{ drives.length }}</span>
+        </button>
+        <button :class="{active: adminTab==='students'}" @click="switchAdminTab('students')">
+          Students <span class="tab-count" v-if="students.length">{{ students.length }}</span>
+        </button>
+        <button :class="{active: adminTab==='applications'}" @click="switchAdminTab('applications')">
+          Applications <span class="tab-count" v-if="adminApplications.length">{{ adminApplications.length }}</span>
+        </button>
+      </div>
+
+      <!-- Companies tab -->
+      <div class="card" v-if="adminTab === 'companies'">
+        <div class="card-header">
+          <span>Company registrations</span>
+          <div class="toolbar">
+            <input v-model="companySearch" @keyup.enter="loadCompanies" placeholder="Search name or industry" class="form-control">
+            <select v-model="companyStatusFilter" @change="loadCompanies" class="form-select">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" @click="loadCompanies">Search</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Company</th><th>Industry</th><th>Status</th><th>Blacklisted</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr v-if="loadingCompanies" class="state-row"><td colspan="5"><span class="spinner-row"><span class="spinner-border spinner-border-sm"></span> Loading companies…</span></td></tr>
+            <tr v-for="c in companies" :key="c.id" :class="rowClass(c)">
+              <td class="primary-cell">{{ c.name }}</td>
+              <td>{{ c.industry || '—' }}</td>
+              <td><span class="pill" :class="pillClass(c.approval_status)">{{ c.approval_status }}</span></td>
+              <td>{{ c.is_blacklisted ? 'Yes' : 'No' }}</td>
               <td>
-                <button class="btn btn-sm btn-outline-secondary me-1" @click="toggleDriveStatus(d)">
-                  {{ d.status === 'Active' ? 'Close' : 'Reopen' }}
-                </button>
-                <button class="btn btn-sm btn-outline-primary" @click="viewApplicants(d)">
-                  {{ expandedDriveId === d.id ? 'Hide Applicants' : 'View Applicants' }}
+                <button class="btn btn-sm btn-accent me-1" v-if="c.approval_status !== 'approved'" @click="setCompanyStatus(c, 'approved')">Approve</button>
+                <button class="btn btn-sm btn-outline-secondary me-1" v-if="c.approval_status !== 'rejected'" @click="setCompanyStatus(c, 'rejected')">Reject</button>
+                <button class="btn btn-sm btn-outline-secondary" @click="toggleCompanyBlacklist(c)">{{ c.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
+              </td>
+            </tr>
+            <tr v-if="!loadingCompanies && companies.length === 0" class="state-row">
+              <td colspan="5"><div class="state-title">No companies match this view</div>New registrations will appear here for review.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Drives tab -->
+      <div class="card" v-if="adminTab === 'drives'">
+        <div class="card-header">
+          <span>Placement drives</span>
+          <div class="toolbar">
+            <input v-model="driveSearch" @keyup.enter="loadDrives" placeholder="Search title or company" class="form-control">
+            <select v-model="driveStatusFilter" @change="loadDrives" class="form-select">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" @click="loadDrives">Search</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr v-if="loadingDrives" class="state-row"><td colspan="6"><span class="spinner-row"><span class="spinner-border spinner-border-sm"></span> Loading drives…</span></td></tr>
+            <tr v-for="d in drives" :key="d.id" :class="rowClass(d)">
+              <td class="primary-cell">{{ d.title }}</td>
+              <td>{{ d.company_name || '—' }}</td>
+              <td><span class="pill" :class="pillClass(d.approval_status)">{{ d.approval_status }}</span></td>
+              <td class="tabular">{{ d.applicant_count }}</td>
+              <td>{{ formatDate(d.deadline) }}</td>
+              <td>
+                <button class="btn btn-sm btn-accent me-1" v-if="d.approval_status !== 'approved'" @click="setDriveStatus(d, 'approved')">Approve</button>
+                <button class="btn btn-sm btn-outline-secondary" v-if="d.approval_status !== 'rejected'" @click="setDriveStatus(d, 'rejected')">Reject</button>
+              </td>
+            </tr>
+            <tr v-if="!loadingDrives && drives.length === 0" class="state-row">
+              <td colspan="6"><div class="state-title">No drives match this view</div>Drives submitted by companies will show up here.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Students tab -->
+      <div class="card" v-if="adminTab === 'students'">
+        <div class="card-header">
+          <span>Students</span>
+          <div class="toolbar">
+            <input v-model="studentSearch" @keyup.enter="loadStudents" placeholder="Search name or contact" class="form-control">
+            <button class="btn btn-outline-secondary btn-sm" @click="loadStudents">Search</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Blacklisted</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr v-if="loadingStudents" class="state-row"><td colspan="5"><span class="spinner-row"><span class="spinner-border spinner-border-sm"></span> Loading students…</span></td></tr>
+            <tr v-for="s in students" :key="s.id" :class="{ 'row-blacklisted': s.is_blacklisted }">
+              <td class="primary-cell">{{ s.full_name }}</td>
+              <td>{{ s.branch || '—' }}</td>
+              <td class="tabular">{{ s.cgpa ?? '—' }}</td>
+              <td>{{ s.is_blacklisted ? 'Yes' : 'No' }}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary" @click="toggleStudentBlacklist(s)">{{ s.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
+              </td>
+            </tr>
+            <tr v-if="!loadingStudents && students.length === 0" class="state-row">
+              <td colspan="5"><div class="state-title">No students match this view</div>Self-registered students will appear here.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Applications tab -->
+      <div class="card" v-if="adminTab === 'applications'">
+        <div class="card-header">
+          <span>All student applications</span>
+          <div class="toolbar">
+            <input v-model="applicationSearch" @keyup.enter="loadAdminApplications" placeholder="Search student, drive, company" class="form-control">
+            <select v-model="applicationStatusFilter" @change="loadAdminApplications" class="form-select">
+              <option value="">All statuses</option>
+              <option>Applied</option>
+              <option>Shortlisted</option>
+              <option>Interview</option>
+              <option>Offer</option>
+              <option>Rejected</option>
+              <option>Placed</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" @click="loadAdminApplications">Search</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Student</th><th>Branch</th><th>Drive</th><th>Company</th><th>Status</th><th>Applied</th></tr></thead>
+          <tbody>
+            <tr v-if="loadingApplications" class="state-row"><td colspan="6"><span class="spinner-row"><span class="spinner-border spinner-border-sm"></span> Loading applications…</span></td></tr>
+            <tr v-for="a in adminApplications" :key="a.id">
+              <td class="primary-cell">{{ a.student_name }}</td>
+              <td>{{ a.branch || '—' }}</td>
+              <td>{{ a.drive_title }}</td>
+              <td>{{ a.company_name }}</td>
+              <td><span class="pill" :class="pillClass(a.status)">{{ a.status }}</span></td>
+              <td>{{ formatDate(a.applied_date) }}</td>
+            </tr>
+            <tr v-if="!loadingApplications && adminApplications.length === 0" class="state-row">
+              <td colspan="6"><div class="state-title">No applications match this view</div>Every application a student submits, across every drive, shows up here.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPANY DASHBOARD -->
+    <div v-else-if="user.roles.includes('company')">
+      <div v-if="company.approval_status === 'pending'" class="alert alert-warning">
+        Your registration is pending admin approval. You can edit your profile now, but you won't be able to post drives until an admin approves your account.
+      </div>
+      <div v-if="company.approval_status === 'rejected'" class="alert alert-danger">
+        Your registration was rejected by the admin.
+      </div>
+      <div v-if="company.is_blacklisted" class="alert alert-danger">
+        Your account has been blacklisted.
+      </div>
+
+      <!-- Profile -->
+      <div class="card">
+        <div class="card-header">Company profile</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Company Name</label>
+              <input v-model="companyForm.name" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Industry</label>
+              <input v-model="companyForm.industry" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Location</label>
+              <input v-model="companyForm.location" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Website</label>
+              <input v-model="companyForm.website" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">HR Contact Name</label>
+              <input v-model="companyForm.hr_contact_name" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">HR Contact Phone</label>
+              <input v-model="companyForm.hr_contact_phone" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea v-model="companyForm.description" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3" @click="saveCompanyProfile">Save profile</button>
+        </div>
+      </div>
+
+      <!-- Create Drive (only once approved) -->
+      <div class="card" v-if="company.approval_status === 'approved' && !company.is_blacklisted">
+        <div class="card-header">Post a new placement drive</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Title</label>
+              <input v-model="driveForm.title" class="form-control" placeholder="e.g. SDE Intern">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Salary</label>
+              <input v-model="driveForm.salary" class="form-control" placeholder="e.g. 12 LPA">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea v-model="driveForm.description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Eligible Branches (comma-separated)</label>
+              <input v-model="driveForm.eligible_branches" class="form-control" placeholder="CSE,IT">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Min CGPA</label>
+              <input v-model.number="driveForm.min_cgpa" type="number" step="0.1" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Eligible Years (comma-separated)</label>
+              <input v-model="driveForm.eligible_years" class="form-control" placeholder="3,4">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Skills Required</label>
+              <input v-model="driveForm.skills_required" class="form-control" placeholder="Python,SQL">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Deadline</label>
+              <input v-model="driveForm.deadline" type="datetime-local" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Benefits</label>
+              <input v-model="driveForm.benefits" class="form-control">
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3" @click="createDrive">Submit drive for approval</button>
+        </div>
+      </div>
+
+      <!-- Drives list -->
+      <div class="card">
+        <div class="card-header">Your drives</div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Drive</th><th>Approval</th><th>Status</th><th>Applicants</th><th>Deadline</th><th>Actions</th></tr></thead>
+          <tbody>
+            <template v-for="d in companyDrives">
+              <tr :key="'drive-'+d.id" :class="rowClass(d)">
+                <td class="primary-cell">{{ d.title }}</td>
+                <td><span class="pill" :class="pillClass(d.approval_status)">{{ d.approval_status }}</span></td>
+                <td><span class="pill" :class="pillClass(d.status)">{{ d.status }}</span></td>
+                <td class="tabular">{{ d.applicant_count }}</td>
+                <td>{{ formatDate(d.deadline) }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-secondary me-1" @click="toggleDriveStatus(d)">
+                    {{ d.status === 'Active' ? 'Close' : 'Reopen' }}
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" @click="viewApplicants(d)">
+                    {{ expandedDriveId === d.id ? 'Hide applicants' : 'View applicants' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="expandedDriveId === d.id" :key="'applicants-'+d.id" class="drilldown">
+                <td colspan="6">
+                  <div v-if="loadingApplicants" class="spinner-row py-2"><span class="spinner-border spinner-border-sm"></span> Loading applicants…</div>
+                  <div v-else-if="applicants.length === 0" class="text-muted py-2">No applicants yet for this drive.</div>
+                  <table class="ledger-table applicant-mini-table" v-else>
+                    <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Status</th><th>Feedback</th><th>Interview</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      <tr v-for="a in applicants" :key="a.id">
+                        <td class="primary-cell">{{ a.student_name }}</td>
+                        <td>{{ a.branch || '—' }}</td>
+                        <td class="tabular">{{ a.cgpa ?? '—' }}</td>
+                        <td><span class="pill" :class="pillClass(a.status)">{{ a.status }}</span></td>
+                        <td><input v-model="a.feedback" class="form-control form-control-sm" placeholder="feedback"></td>
+                        <td><input v-model="a.interview_datetime" type="datetime-local" class="form-control form-control-sm"></td>
+                        <td>
+                          <select v-model="a.status" class="form-select form-select-sm d-inline w-auto me-1">
+                            <option>Applied</option>
+                            <option>Shortlisted</option>
+                            <option>Interview</option>
+                            <option>Offer</option>
+                            <option>Rejected</option>
+                            <option>Placed</option>
+                          </select>
+                          <button class="btn btn-sm btn-accent" @click="saveApplicant(a)">Save</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </template>
+            <tr v-if="companyDrives.length === 0" class="state-row">
+              <td colspan="6"><div class="state-title">No drives posted yet</div>Once you're approved, post your first drive above.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENT DASHBOARD -->
+    <div v-else-if="user.roles.includes('student')">
+      <div v-if="student.is_blacklisted" class="alert alert-danger">
+        Your account has been blacklisted. You cannot apply to new drives.
+      </div>
+
+      <!-- Profile -->
+      <div class="card">
+        <div class="card-header">My profile</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full Name</label>
+              <input v-model="studentForm.full_name" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contact Number</label>
+              <input v-model="studentForm.contact_number" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Branch</label>
+              <input v-model="studentForm.branch" class="form-control" placeholder="e.g. CSE">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Year</label>
+              <input v-model.number="studentForm.year" type="number" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">CGPA</label>
+              <input v-model.number="studentForm.cgpa" type="number" step="0.01" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Skills (comma-separated)</label>
+              <input v-model="studentForm.skills" class="form-control" placeholder="Python,SQL">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Resume</label>
+              <input type="file" ref="resumeFile" class="form-control" accept=".pdf,.doc,.docx">
+              <div class="form-text" v-if="student.resume_path">Current: {{ student.resume_path.split('/').pop() }}</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Experience</label>
+              <textarea v-model="studentForm.experience" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3" @click="saveStudentProfile">Save profile</button>
+          <button class="btn btn-outline-secondary mt-3 ms-2" @click="uploadResume">Upload resume</button>
+        </div>
+      </div>
+
+      <!-- Browse Drives -->
+      <div class="card">
+        <div class="card-header">
+          <span>Browse placement drives</span>
+          <div class="toolbar">
+            <input v-model="driveFilters.company" @keyup.enter="loadDrivesToApply" placeholder="Company" class="form-control">
+            <input v-model="driveFilters.title" @keyup.enter="loadDrivesToApply" placeholder="Position" class="form-control">
+            <input v-model="driveFilters.skills" @keyup.enter="loadDrivesToApply" placeholder="Skills" class="form-control">
+            <div class="form-check form-check-inline">
+              <input type="checkbox" v-model="driveFilters.only_eligible" @change="loadDrivesToApply" class="form-check-input" id="eligOnly">
+              <label class="form-check-label small" for="eligOnly">Eligible only</label>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" @click="loadDrivesToApply">Search</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Drive</th><th>Company</th><th>Salary</th><th>Eligible</th><th>Deadline</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr v-if="loadingDrives" class="state-row"><td colspan="6"><span class="spinner-row"><span class="spinner-border spinner-border-sm"></span> Loading drives…</span></td></tr>
+            <tr v-for="d in browseDrives" :key="d.id">
+              <td class="primary-cell">{{ d.title }}</td>
+              <td>{{ d.company_name }}</td>
+              <td>{{ d.salary || '—' }}</td>
+              <td><span class="pill" :class="d.eligible ? 'pill-approved' : 'pill-neutral'">{{ d.eligible ? 'Yes' : 'No' }}</span></td>
+              <td>{{ formatDate(d.deadline) }}</td>
+              <td>
+                <button class="btn btn-sm btn-accent" :disabled="!d.eligible || appliedDriveIds.includes(d.id)" @click="applyToDrive(d)">
+                  {{ appliedDriveIds.includes(d.id) ? 'Applied' : 'Apply' }}
                 </button>
               </td>
             </tr>
-            <tr v-if="expandedDriveId === d.id" :key="'applicants-'+d.id">
-              <td colspan="6" class="bg-light">
-                <div v-if="applicants.length === 0" class="text-muted py-2">No applicants yet.</div>
-                <table class="table table-sm mb-0" v-else>
-                  <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Status</th><th>Feedback</th><th>Interview</th><th>Actions</th></tr></thead>
-                  <tbody>
-                    <tr v-for="a in applicants" :key="a.id">
-                      <td>{{ a.student_name }}</td>
-                      <td>{{ a.branch || '—' }}</td>
-                      <td>{{ a.cgpa ?? '—' }}</td>
-                      <td><span class="badge bg-secondary">{{ a.status }}</span></td>
-                      <td><input v-model="a.feedback" class="form-control form-control-sm" placeholder="feedback"></td>
-                      <td><input v-model="a.interview_datetime" type="datetime-local" class="form-control form-control-sm"></td>
-                      <td>
-                        <select v-model="a.status" class="form-select form-select-sm d-inline w-auto me-1">
-                          <option>Applied</option>
-                          <option>Shortlisted</option>
-                          <option>Interview</option>
-                          <option>Offer</option>
-                          <option>Rejected</option>
-                          <option>Placed</option>
-                        </select>
-                        <button class="btn btn-sm btn-primary" @click="saveApplicant(a)">Save</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </td>
+            <tr v-if="!loadingDrives && browseDrives.length === 0" class="state-row">
+              <td colspan="6"><div class="state-title">No drives match your filters</div>Try widening your search, or check back once new drives are approved.</td>
             </tr>
-          </template>
-          <tr v-if="companyDrives.length === 0"><td colspan="6" class="text-center text-muted">No drives posted yet</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
-  </div>
-
-  <!-- STUDENT DASHBOARD -->
-  <div v-else-if="user.roles.includes('student')">
-    <div class="pp-topbar">
-      <div>
-        <div class="pp-eyebrow">Placement Portal</div>
-        <h3>Student Dashboard</h3>
-      </div>
-      <div>
-        <span class="text-muted me-3">{{ user.email }}</span>
-        <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
-      </div>
-    </div>
-
-    <div v-if="student.is_blacklisted" class="alert alert-danger">
-      Your account has been blacklisted. You cannot apply to new drives.
-    </div>
-
-    <!-- Profile -->
-    <div class="card mb-4">
-      <div class="card-header">My Profile</div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Full Name</label>
-            <input v-model="studentForm.full_name" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Contact Number</label>
-            <input v-model="studentForm.contact_number" class="form-control">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Branch</label>
-            <input v-model="studentForm.branch" class="form-control" placeholder="e.g. CSE">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Year</label>
-            <input v-model.number="studentForm.year" type="number" class="form-control">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">CGPA</label>
-            <input v-model.number="studentForm.cgpa" type="number" step="0.01" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Skills (comma-separated)</label>
-            <input v-model="studentForm.skills" class="form-control" placeholder="Python,SQL">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Resume</label>
-            <input type="file" ref="resumeFile" class="form-control" accept=".pdf,.doc,.docx">
-            <div class="form-text" v-if="student.resume_path">Current: {{ student.resume_path.split('/').pop() }}</div>
-          </div>
-          <div class="col-12">
-            <label class="form-label">Experience</label>
-            <textarea v-model="studentForm.experience" class="form-control" rows="2"></textarea>
-          </div>
-        </div>
-        <button class="btn btn-primary mt-3" @click="saveStudentProfile">Save Profile</button>
-        <button class="btn btn-outline-primary mt-3 ms-2" @click="uploadResume">Upload Resume</button>
-        <span v-if="studentMessage" class="text-success ms-2">{{ studentMessage }}</span>
-      </div>
-    </div>
-
-    <!-- Browse Drives -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Browse Placement Drives</span>
-        <div>
-          <input v-model="driveFilters.company" @keyup.enter="loadDrivesToApply" placeholder="Company" class="form-control form-control-sm d-inline w-auto me-1">
-          <input v-model="driveFilters.title" @keyup.enter="loadDrivesToApply" placeholder="Position" class="form-control form-control-sm d-inline w-auto me-1">
-          <input v-model="driveFilters.skills" @keyup.enter="loadDrivesToApply" placeholder="Skills" class="form-control form-control-sm d-inline w-auto me-1">
-          <div class="form-check form-check-inline">
-            <input type="checkbox" v-model="driveFilters.only_eligible" @change="loadDrivesToApply" class="form-check-input">
-            <label class="form-check-label small">Eligible only</label>
-          </div>
-          <button class="btn btn-sm btn-outline-secondary" @click="loadDrivesToApply">Search</button>
+          </tbody>
+        </table>
         </div>
       </div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Title</th><th>Company</th><th>Salary</th><th>Eligible</th><th>Deadline</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="d in browseDrives" :key="d.id">
-            <td>{{ d.title }}</td>
-            <td>{{ d.company_name }}</td>
-            <td>{{ d.salary || '—' }}</td>
-            <td><span class="badge" :class="d.eligible ? 'bg-success' : 'bg-secondary'">{{ d.eligible ? 'Yes' : 'No' }}</span></td>
-            <td>{{ d.deadline ? d.deadline.slice(0,10) : '—' }}</td>
-            <td>
-              <button class="btn btn-sm btn-primary" :disabled="!d.eligible || appliedDriveIds.includes(d.id)" @click="applyToDrive(d)">
-                {{ appliedDriveIds.includes(d.id) ? 'Applied' : 'Apply' }}
-              </button>
-            </td>
-          </tr>
-          <tr v-if="browseDrives.length === 0"><td colspan="6" class="text-center text-muted">No drives found</td></tr>
-        </tbody>
-      </table>
-</div>
-    </div>
 
-    <!-- My Applications -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>My Applications</span>
-        <div class="d-flex align-items-center">
-          <span v-if="exportState === 'PENDING' || exportState === 'STARTED'" class="text-muted small me-2">
-            <span class="spinner-border spinner-border-sm me-1"></span>Preparing export…
-          </span>
-          <a v-if="exportState === 'SUCCESS' && exportDownloadUrl" :href="exportDownloadUrl"
-             class="btn btn-sm btn-gold me-2" download>Download CSV</a>
-          <span v-if="exportState === 'FAILURE'" class="text-danger small me-2">Export failed — try again.</span>
-          <button class="btn btn-sm btn-outline-primary" :disabled="exportState === 'PENDING' || exportState === 'STARTED'" @click="exportApplicationsCsv">
-            Export as CSV
+      <!-- My Applications -->
+      <div class="card">
+        <div class="card-header">My applications</div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Interview</th><th>Feedback</th></tr></thead>
+          <tbody>
+            <tr v-for="a in myApplications" :key="a.id">
+              <td class="primary-cell">{{ a.drive_title }}</td>
+              <td>{{ a.company_name }}</td>
+              <td><span class="pill" :class="pillClass(a.status)">{{ a.status }}</span></td>
+              <td>{{ a.interview_datetime ? a.interview_datetime.replace('T', ' ').slice(0,16) : '—' }}</td>
+              <td>{{ a.feedback || '—' }}</td>
+            </tr>
+            <tr v-if="myApplications.length === 0" class="state-row">
+              <td colspan="5"><div class="state-title">No applications yet</div>Apply to a drive above and it'll show up here.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Export application history -->
+      <div class="card">
+        <div class="card-header">Export application history</div>
+        <div class="card-body">
+          <p class="section-sub mb-2">Generates a CSV of every drive you've applied to, with company, status, and dates — built in the background so it won't block you.</p>
+          <button class="btn btn-outline-secondary" @click="triggerExport" :disabled="exportState === 'running'">
+            <span v-if="exportState === 'running'" class="spinner-border spinner-border-sm me-1"></span>
+            {{ exportState === 'running' ? 'Preparing export…' : 'Export as CSV' }}
           </button>
+          <a v-if="exportState === 'done'" :href="exportDownloadUrl" class="btn btn-accent ms-2">Download CSV</a>
+          <div class="export-status-line" v-if="exportState === 'running'">
+            <span class="spinner-border spinner-border-sm"></span> Job queued — this updates automatically once it's done.
+          </div>
+          <div class="export-status-line" v-if="exportState === 'error'">
+            Something went wrong generating the export. Try again.
+          </div>
         </div>
       </div>
-      <div v-if="exportAlert" class="alert alert-success mb-0 rounded-0 py-2 small">{{ exportAlert }}</div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Drive</th><th>Company</th><th>Status</th><th>Interview</th><th>Feedback</th></tr></thead>
-        <tbody>
-          <tr v-for="a in myApplications" :key="a.id">
-            <td>{{ a.drive_title }}</td>
-            <td>{{ a.company_name }}</td>
-            <td><span class="badge" :class="statusBadgeClass(a.status)">{{ a.status }}</span></td>
-            <td>{{ a.interview_datetime ? a.interview_datetime.replace('T', ' ').slice(0,16) : '—' }}</td>
-            <td>{{ a.feedback || '—' }}</td>
-          </tr>
-          <tr v-if="myApplications.length === 0"><td colspan="5" class="text-center text-muted">No applications yet</td></tr>
-        </tbody>
-      </table>
-</div>
+
+      <!-- Placement History -->
+      <div class="card">
+        <div class="card-header">Placement history</div>
+        <div class="table-scroll">
+        <table class="ledger-table">
+          <thead><tr><th>Company</th><th>Position</th><th>Salary</th><th>Confirmed</th><th>Offer Letter</th></tr></thead>
+          <tbody>
+            <tr v-for="p in myPlacements" :key="p.id">
+              <td class="primary-cell">{{ p.company_name }}</td>
+              <td>{{ p.position }}</td>
+              <td>{{ p.salary }}</td>
+              <td>{{ formatDate(p.created_at) }}</td>
+              <td><a :href="'/api/student/placements/' + p.id + '/offer-letter'" class="btn btn-sm btn-outline-secondary">Download</a></td>
+            </tr>
+            <tr v-if="myPlacements.length === 0" class="state-row">
+              <td colspan="5"><div class="state-title">No placements yet</div>Once a company marks you as placed, your offer details land here.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
     </div>
 
-    <!-- Placement History -->
-    <div class="card mb-4">
-      <div class="card-header">Placement History</div>
-      <div class="table-responsive">
-<table class="table mb-0">
-        <thead><tr><th>Company</th><th>Position</th><th>Salary</th><th>Confirmed</th><th>Offer Letter</th></tr></thead>
-        <tbody>
-          <tr v-for="p in myPlacements" :key="p.id">
-            <td>{{ p.company_name }}</td>
-            <td>{{ p.position }}</td>
-            <td>{{ p.salary }}</td>
-            <td>{{ p.created_at ? p.created_at.slice(0,10) : '—' }}</td>
-            <td><a :href="'/api/student/placements/' + p.id + '/offer-letter'" class="btn btn-sm btn-outline-primary">Download</a></td>
-          </tr>
-          <tr v-if="myPlacements.length === 0"><td colspan="5" class="text-center text-muted">No placements yet</td></tr>
-        </tbody>
-      </table>
-</div>
+    <!-- FALLBACK -->
+    <div v-else>
+      <p class="text-muted">Signed in as {{ user.email }}, role: {{ user.roles.join(', ') }}</p>
     </div>
+
   </div>
-
-  <!-- FALLBACK -->
-  <div v-else>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3>Welcome, {{ user.email }}</h3>
-      <button class="btn btn-outline-secondary btn-sm" @click="logout">Log out</button>
-    </div>
-    <p class="text-muted">Role: {{ user.roles.join(', ') }}</p>
-  </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
@@ -636,44 +899,52 @@ new Vue({
   data: {
     user: null,
     message: "",
+    successMessage: "",
+    authBusy: false,
     loginForm: { email: "", password: "" },
     authMode: "login",
-    successMessage: "",
     registerForm: { role: "student", email: "", password: "", full_name: "", company_name: "" },
+
+    toasts: [],
+    toastSeq: 0,
+
     stats: {},
+    adminTab: "companies",
     companies: [],
     drives: [],
     students: [],
+    adminApplications: [],
     companySearch: "",
     companyStatusFilter: "",
-    driveStatusFilter: "",
     driveSearch: "",
+    driveStatusFilter: "",
     studentSearch: "",
-    applications: [],
     applicationSearch: "",
     applicationStatusFilter: "",
+    loadingCompanies: false,
+    loadingStudents: false,
+    loadingApplications: false,
+
     // company dashboard state
     company: {},
     companyForm: {},
-    companyMessage: "",
     driveForm: {},
-    driveMessage: "",
     companyDrives: [],
     expandedDriveId: null,
     applicants: [],
+    loadingApplicants: false,
+
     // student dashboard state
     student: {},
     studentForm: {},
-    studentMessage: "",
     browseDrives: [],
+    loadingDrives: false,
     driveFilters: { company: "", title: "", skills: "", only_eligible: false },
     myApplications: [],
     myPlacements: [],
-    // CSV export state
+    exportState: "idle", // idle | running | done | error
     exportTaskId: null,
-    exportState: null,
     exportDownloadUrl: "",
-    exportAlert: "",
     exportPollHandle: null,
   },
   created() {
@@ -683,8 +954,38 @@ new Vue({
     appliedDriveIds() {
       return this.myApplications.map((a) => a.drive_id);
     },
+    primaryRole() {
+      if (!this.user) return "";
+      return ["admin", "company", "student"].find((r) => this.user.roles.includes(r)) || this.user.roles[0];
+    },
+    dashboardTitle() {
+      return { admin: "Admin dashboard", company: "Company dashboard", student: "Student dashboard" }[this.primaryRole] || "Dashboard";
+    },
   },
   methods: {
+    // ---------- toasts ----------
+    toast(message, type) {
+      const id = ++this.toastSeq;
+      this.toasts.push({ id, message, type: type || "success" });
+      setTimeout(() => this.dismissToast(id), 4500);
+    },
+    dismissToast(id) {
+      this.toasts = this.toasts.filter((t) => t.id !== id);
+    },
+
+    // ---------- formatting helpers ----------
+    formatDate(value) {
+      return value ? value.slice(0, 10) : "—";
+    },
+    pillClass(status) {
+      return "pill-" + (status || "").toLowerCase();
+    },
+    rowClass(item) {
+      const s = (item.approval_status || item.status || "").toLowerCase();
+      return s ? "row-" + s : "";
+    },
+
+    // ---------- auth ----------
     async whoami() {
       const res = await fetch("/api/whoami", { credentials: "same-origin" });
       if (res.ok) {
@@ -695,73 +996,93 @@ new Vue({
       }
     },
     toggleAuthMode() {
-  this.message = "";
-  this.successMessage = "";
-  this.authMode = this.authMode === "login" ? "register" : "login";
-},
-async register() {
-  this.message = "";
-  this.successMessage = "";
-  const res = await fetch("/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify(this.registerForm),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.ok) {
-    this.successMessage = data.status === "pending approval"
-      ? "Account created. Your company is pending admin approval — you can log in once approved."
-      : "Account created. You can log in now.";
-    this.loginForm.email = this.registerForm.email;
-    this.registerForm = { role: "student", email: "", password: "", full_name: "", company_name: "" };
-    this.authMode = "login";
-  } else {
-    this.message = data.error || "Registration failed.";
-  }
-},
+      this.message = "";
+      this.successMessage = "";
+      this.authMode = this.authMode === "login" ? "register" : "login";
+    },
+    async register() {
+      this.message = "";
+      this.successMessage = "";
+      this.authBusy = true;
+      try {
+        const res = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(this.registerForm),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          this.successMessage = data.status === "pending approval"
+            ? "Account created. Your company is pending admin approval — you can log in once approved."
+            : "Account created. You can log in now.";
+          this.loginForm.email = this.registerForm.email;
+          this.registerForm = { role: "student", email: "", password: "", full_name: "", company_name: "" };
+          this.authMode = "login";
+        } else {
+          this.message = data.error || "Registration failed.";
+        }
+      } finally {
+        this.authBusy = false;
+      }
+    },
     async login() {
       this.message = "";
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(this.loginForm),
-      });
-      if (res.ok) {
-        await this.whoami();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        this.message = data.response && data.response.errors
-          ? JSON.stringify(data.response.errors)
-          : "Login failed. Check your credentials.";
+      this.authBusy = true;
+      try {
+        const res = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(this.loginForm),
+        });
+        if (res.ok) {
+          await this.whoami();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          this.message = data.response && data.response.errors
+            ? JSON.stringify(data.response.errors)
+            : "Login failed. Check your credentials.";
+        }
+      } finally {
+        this.authBusy = false;
       }
     },
     async logout() {
       await fetch("/logout", { credentials: "same-origin" });
+      this.stopExportPolling();
       this.user = null;
       this.stats = {};
       this.companies = [];
       this.drives = [];
       this.students = [];
+      this.adminApplications = [];
+    },
+
+    // ---------- admin ----------
+    switchAdminTab(tab) {
+      this.adminTab = tab;
+      if (tab === "companies" && this.companies.length === 0) this.loadCompanies();
+      if (tab === "drives" && this.drives.length === 0) this.loadDrives();
+      if (tab === "students" && this.students.length === 0) this.loadStudents();
+      if (tab === "applications" && this.adminApplications.length === 0) this.loadAdminApplications();
     },
     loadAdminData() {
       this.loadStats();
       this.loadCompanies();
-      this.loadDrives();
-      this.loadStudents();
-      this.loadApplications();
     },
     async loadStats() {
       const res = await fetch("/api/admin/stats", { credentials: "same-origin" });
       if (res.ok) this.stats = await res.json();
     },
     async loadCompanies() {
+      this.loadingCompanies = true;
       const params = new URLSearchParams();
       if (this.companySearch) params.set("q", this.companySearch);
       if (this.companyStatusFilter) params.set("status", this.companyStatusFilter);
       const res = await fetch("/api/admin/companies?" + params.toString(), { credentials: "same-origin" });
       if (res.ok) this.companies = await res.json();
+      this.loadingCompanies = false;
     },
     async setCompanyStatus(company, status) {
       const res = await fetch(`/api/admin/companies/${company.id}`, {
@@ -770,7 +1091,13 @@ async register() {
         credentials: "same-origin",
         body: JSON.stringify({ approval_status: status }),
       });
-      if (res.ok) { await this.loadCompanies(); await this.loadStats(); }
+      if (res.ok) {
+        await this.loadCompanies();
+        await this.loadStats();
+        this.toast(`${company.name} ${status}.`, status === "rejected" ? "info" : "success");
+      } else {
+        this.toast("Could not update company status.", "error");
+      }
     },
     async toggleCompanyBlacklist(company) {
       const res = await fetch(`/api/admin/companies/${company.id}`, {
@@ -779,21 +1106,24 @@ async register() {
         credentials: "same-origin",
         body: JSON.stringify({ is_blacklisted: !company.is_blacklisted }),
       });
-      if (res.ok) await this.loadCompanies();
+      if (res.ok) {
+        await this.loadCompanies();
+        this.toast(`${company.name} ${company.is_blacklisted ? "unblacklisted" : "blacklisted"}.`, "info");
+      }
     },
     async loadDrives() {
+      this.loadingDrives = true;
       const params = new URLSearchParams();
-      if (this.driveStatusFilter) params.set("status", this.driveStatusFilter);
-      if (this.driveSearch) params.set("q", this.driveSearch);
-      const res = await fetch("/api/admin/drives?" + params.toString(), { credentials: "same-origin" });
-      if (res.ok) this.drives = await res.json();
-    },
-    async loadApplications() {
-      const params = new URLSearchParams();
-      if (this.applicationStatusFilter) params.set("status", this.applicationStatusFilter);
-      if (this.applicationSearch) params.set("q", this.applicationSearch);
-      const res = await fetch("/api/admin/applications?" + params.toString(), { credentials: "same-origin" });
-      if (res.ok) this.applications = await res.json();
+      if (this.user && this.user.roles.includes("admin")) {
+        if (this.driveSearch) params.set("q", this.driveSearch);
+        if (this.driveStatusFilter) params.set("status", this.driveStatusFilter);
+        const res = await fetch("/api/admin/drives?" + params.toString(), { credentials: "same-origin" });
+        if (res.ok) this.drives = await res.json();
+        this.loadingDrives = false;
+        return;
+      }
+      await this.loadDrivesToApply();
+      this.loadingDrives = false;
     },
     async setDriveStatus(drive, status) {
       const res = await fetch(`/api/admin/drives/${drive.id}`, {
@@ -802,13 +1132,21 @@ async register() {
         credentials: "same-origin",
         body: JSON.stringify({ approval_status: status }),
       });
-      if (res.ok) { await this.loadDrives(); await this.loadStats(); }
+      if (res.ok) {
+        await this.loadDrives();
+        await this.loadStats();
+        this.toast(`Drive "${drive.title}" ${status}.`, status === "rejected" ? "info" : "success");
+      } else {
+        this.toast("Could not update drive status.", "error");
+      }
     },
     async loadStudents() {
+      this.loadingStudents = true;
       const params = new URLSearchParams();
       if (this.studentSearch) params.set("q", this.studentSearch);
       const res = await fetch("/api/admin/students?" + params.toString(), { credentials: "same-origin" });
       if (res.ok) this.students = await res.json();
+      this.loadingStudents = false;
     },
     async toggleStudentBlacklist(student) {
       const res = await fetch(`/api/admin/students/${student.id}`, {
@@ -817,8 +1155,22 @@ async register() {
         credentials: "same-origin",
         body: JSON.stringify({ is_blacklisted: !student.is_blacklisted }),
       });
-      if (res.ok) await this.loadStudents();
+      if (res.ok) {
+        await this.loadStudents();
+        this.toast(`${student.full_name} ${student.is_blacklisted ? "unblacklisted" : "blacklisted"}.`, "info");
+      }
     },
+    async loadAdminApplications() {
+      this.loadingApplications = true;
+      const params = new URLSearchParams();
+      if (this.applicationSearch) params.set("q", this.applicationSearch);
+      if (this.applicationStatusFilter) params.set("status", this.applicationStatusFilter);
+      const res = await fetch("/api/admin/applications?" + params.toString(), { credentials: "same-origin" });
+      if (res.ok) this.adminApplications = await res.json();
+      this.loadingApplications = false;
+    },
+
+    // ---------- company ----------
     async loadCompanyData() {
       await this.loadCompanyProfile();
       await this.loadCompanyDrives();
@@ -831,7 +1183,6 @@ async register() {
       }
     },
     async saveCompanyProfile() {
-      this.companyMessage = "";
       const res = await fetch("/api/company/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -839,9 +1190,10 @@ async register() {
         body: JSON.stringify(this.companyForm),
       });
       if (res.ok) {
-        this.companyMessage = "Saved.";
         await this.loadCompanyProfile();
-        setTimeout(() => (this.companyMessage = ""), 2000);
+        this.toast("Profile saved.", "success");
+      } else {
+        this.toast("Could not save profile.", "error");
       }
     },
     async loadCompanyDrives() {
@@ -849,7 +1201,6 @@ async register() {
       if (res.ok) this.companyDrives = await res.json();
     },
     async createDrive() {
-      this.driveMessage = "";
       const res = await fetch("/api/company/drives", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -857,13 +1208,12 @@ async register() {
         body: JSON.stringify(this.driveForm),
       });
       if (res.ok) {
-        this.driveMessage = "Submitted for admin approval.";
         this.driveForm = {};
         await this.loadCompanyDrives();
-        setTimeout(() => (this.driveMessage = ""), 3000);
+        this.toast("Drive submitted for admin approval.", "success");
       } else {
         const data = await res.json().catch(() => ({}));
-        this.driveMessage = data.error || "Could not create drive.";
+        this.toast(data.error || "Could not create drive.", "error");
       }
     },
     async toggleDriveStatus(drive) {
@@ -874,7 +1224,10 @@ async register() {
         credentials: "same-origin",
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) await this.loadCompanyDrives();
+      if (res.ok) {
+        await this.loadCompanyDrives();
+        this.toast(`Drive marked ${newStatus.toLowerCase()}.`, "info");
+      }
     },
     async viewApplicants(drive) {
       if (this.expandedDriveId === drive.id) {
@@ -883,8 +1236,10 @@ async register() {
         return;
       }
       this.expandedDriveId = drive.id;
+      this.loadingApplicants = true;
       const res = await fetch(`/api/company/drives/${drive.id}/applicants`, { credentials: "same-origin" });
       if (res.ok) this.applicants = await res.json();
+      this.loadingApplicants = false;
     },
     async saveApplicant(applicant) {
       const res = await fetch(`/api/company/applications/${applicant.id}`, {
@@ -901,8 +1256,14 @@ async register() {
         const updated = await res.json();
         const idx = this.applicants.findIndex((a) => a.id === updated.id);
         if (idx !== -1) this.$set(this.applicants, idx, updated);
+        await this.loadCompanyDrives();
+        this.toast(`${applicant.student_name}'s application updated.`, "success");
+      } else {
+        this.toast("Could not update application.", "error");
       }
     },
+
+    // ---------- student ----------
     async loadStudentData() {
       await this.loadStudentProfile();
       await this.loadMyApplications();
@@ -917,7 +1278,6 @@ async register() {
       }
     },
     async saveStudentProfile() {
-      this.studentMessage = "";
       const res = await fetch("/api/student/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -925,15 +1285,16 @@ async register() {
         body: JSON.stringify(this.studentForm),
       });
       if (res.ok) {
-        this.studentMessage = "Saved.";
         await this.loadStudentProfile();
-        setTimeout(() => (this.studentMessage = ""), 2000);
+        this.toast("Profile saved.", "success");
+      } else {
+        this.toast("Could not save profile.", "error");
       }
     },
     async uploadResume() {
       const fileInput = this.$refs.resumeFile;
       if (!fileInput || !fileInput.files.length) {
-        this.studentMessage = "Choose a file first.";
+        this.toast("Choose a file first.", "error");
         return;
       }
       const formData = new FormData();
@@ -944,12 +1305,11 @@ async register() {
         body: formData,
       });
       if (res.ok) {
-        this.studentMessage = "Resume uploaded.";
         await this.loadStudentProfile();
-        setTimeout(() => (this.studentMessage = ""), 2000);
+        this.toast("Resume uploaded.", "success");
       } else {
         const data = await res.json().catch(() => ({}));
-        this.studentMessage = data.error || "Upload failed.";
+        this.toast(data.error || "Upload failed.", "error");
       }
     },
     async loadDrivesToApply() {
@@ -970,9 +1330,10 @@ async register() {
       });
       if (res.ok) {
         await this.loadMyApplications();
+        this.toast(`Applied to ${drive.title}.`, "success");
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Could not apply.");
+        this.toast(data.error || "Could not apply.", "error");
       }
     },
     async loadMyApplications() {
@@ -983,57 +1344,47 @@ async register() {
       const res = await fetch("/api/student/placements", { credentials: "same-origin" });
       if (res.ok) this.myPlacements = await res.json();
     },
-    async exportApplicationsCsv() {
-      this.exportAlert = "";
+
+    // ---------- CSV export (user-triggered async job) ----------
+    async triggerExport() {
+      this.exportState = "running";
       this.exportDownloadUrl = "";
-      const res = await fetch("/api/student/export-csv", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      if (!res.ok) {
-        this.exportState = "FAILURE";
-        return;
+      try {
+        const res = await fetch("/api/student/export-csv", { method: "POST", credentials: "same-origin" });
+        if (!res.ok) throw new Error("trigger failed");
+        const data = await res.json();
+        this.exportTaskId = data.task_id;
+        this.toast("Export started — you'll be notified when it's ready.", "info");
+        this.pollExportStatus();
+      } catch (e) {
+        this.exportState = "error";
+        this.toast("Could not start the export job.", "error");
       }
-      const data = await res.json();
-      this.exportTaskId = data.task_id;
-      this.exportState = "PENDING";
-      this.pollExportStatus();
     },
     pollExportStatus() {
-      if (this.exportPollHandle) clearInterval(this.exportPollHandle);
+      this.stopExportPolling();
       this.exportPollHandle = setInterval(async () => {
         if (!this.exportTaskId) return;
         const res = await fetch(`/api/tasks/${this.exportTaskId}/status`, { credentials: "same-origin" });
         if (!res.ok) return;
         const data = await res.json();
-        this.exportState = data.state;
         if (data.state === "SUCCESS") {
-          clearInterval(this.exportPollHandle);
+          this.stopExportPolling();
+          this.exportState = "done";
           this.exportDownloadUrl = `/api/student/export-csv/${this.exportTaskId}/download`;
-          const rows = data.result && data.result.row_count;
-          this.exportAlert = `Your export is ready${rows !== undefined ? ` (${rows} row${rows === 1 ? "" : "s"})` : ""} — download it below.`;
-          setTimeout(() => (this.exportAlert = ""), 6000);
+          this.toast("Your export is ready to download.", "success");
         } else if (data.state === "FAILURE") {
-          clearInterval(this.exportPollHandle);
+          this.stopExportPolling();
+          this.exportState = "error";
+          this.toast("The export job failed. Try again.", "error");
         }
       }, 1500);
     },
-    statusBadgeClass(status) {
-      return {
-        Applied: "bg-secondary",
-        Shortlisted: "bg-info text-dark",
-        Interview: "bg-warning text-dark",
-        Offer: "bg-primary",
-        Rejected: "bg-danger",
-        Placed: "bg-success",
-      }[status] || "bg-secondary";
-    },
-    badgeClass(status) {
-      return {
-        pending: "bg-warning text-dark",
-        approved: "bg-success",
-        rejected: "bg-danger",
-      }[status] || "bg-secondary";
+    stopExportPolling() {
+      if (this.exportPollHandle) {
+        clearInterval(this.exportPollHandle);
+        this.exportPollHandle = null;
+      }
     },
   },
 });
@@ -1050,4 +1401,3 @@ async register() {
 </script>
 </body>
 </html>
-

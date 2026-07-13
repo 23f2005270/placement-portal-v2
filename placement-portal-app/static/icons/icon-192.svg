@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="24" fill="#0d6efd"/>
-  <text x="96" y="118" font-family="Arial, sans-serif" font-size="80" font-weight="bold"
-        fill="white" text-anchor="middle">PP</text>
+  <rect width="192" height="192" rx="36" fill="#1B2430"/>
+  <rect x="30" y="30" width="132" height="132" rx="18" fill="none" stroke="#2F6F52" stroke-width="4" opacity="0.5"/>
+  <text x="96" y="112" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="52" font-weight="700" fill="#FFFFFF" text-anchor="middle">PPA</text>
+  <rect x="60" y="128" width="72" height="6" rx="3" fill="#2F6F52"/>
 </svg>

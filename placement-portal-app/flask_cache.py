@@ -27,3 +27,4 @@ def invalidate_cache():
     next read repopulate it.
     """
     cache.clear()
+

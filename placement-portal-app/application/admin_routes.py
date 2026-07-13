@@ -89,16 +89,16 @@ class AdminCompanyDetail(Resource):
 class AdminDriveList(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=60, query_string=True, key_prefix="admin_drives")
     def get(self):
-        status = request.args.get("status")
         q = request.args.get("q", "").strip()
-
+        status = request.args.get("status")
         query = Drive.query
         if status:
             query = query.filter_by(approval_status=status)
         if q:
             like = f"%{q}%"
-            query = query.join(Company, Drive.company_id == Company.id).filter(
+            query = query.join(Company).filter(
                 (Drive.title.ilike(like)) | (Company.name.ilike(like))
             )
 
@@ -184,46 +184,37 @@ class AdminStudentDetail(Resource):
 
 class AdminApplicationList(Resource):
     """
-    Full list of all student applications across every drive/company, with
-    optional filters. Fills the "Admin can view all student applications"
-    requirement (previously only an aggregate count was exposed).
+    Read-only, admin-wide view over every application in the system —
+    satisfies the statement's "Admin can view all student applications".
+    Supports optional filters so the dashboard table stays usable once
+    there are more than a handful of rows.
     """
+
     method_decorators = [admin_required]
 
     @cache.cached(timeout=60, query_string=True, key_prefix="admin_applications")
     def get(self):
         status = request.args.get("status")
-        drive_id = request.args.get("drive_id", type=int)
-        company_id = request.args.get("company_id", type=int)
         q = request.args.get("q", "").strip()
 
-        query = Application.query
+        query = Application.query.join(Student).join(Drive).join(Company)
         if status:
-            query = query.filter_by(status=status)
-        if drive_id:
-            query = query.filter_by(drive_id=drive_id)
-        if company_id:
-            query = query.join(Drive, Application.drive_id == Drive.id).filter(
-                Drive.company_id == company_id
-            )
+            query = query.filter(Application.status == status)
         if q:
             like = f"%{q}%"
-            query = (
-                query.join(Student, Application.student_id == Student.id)
-                .join(Drive, Application.drive_id == Drive.id)
-                .join(Company, Drive.company_id == Company.id)
-                .filter(
-                    (Student.full_name.ilike(like))
-                    | (Drive.title.ilike(like))
-                    | (Company.name.ilike(like))
-                )
+            query = query.filter(
+                (Student.full_name.ilike(like))
+                | (Drive.title.ilike(like))
+                | (Company.name.ilike(like))
             )
 
+        apps = query.order_by(Application.applied_date.desc()).all()
         return [
             {
                 "id": a.id,
                 "student_id": a.student_id,
                 "student_name": a.student.full_name if a.student else None,
+                "branch": a.student.branch if a.student else None,
                 "drive_id": a.drive_id,
                 "drive_title": a.drive.title if a.drive else None,
                 "company_name": a.drive.company.name if a.drive and a.drive.company else None,
@@ -233,7 +224,7 @@ class AdminApplicationList(Resource):
                 if a.interview_datetime
                 else None,
             }
-            for a in query.order_by(Application.applied_date.desc()).all()
+            for a in apps
         ]
 
 
@@ -247,5 +238,4 @@ def register_admin_resources(app):
     api.add_resource(AdminStudentList, "/api/admin/students")
     api.add_resource(AdminStudentDetail, "/api/admin/students/<int:student_id>")
     api.add_resource(AdminApplicationList, "/api/admin/applications")
-
 

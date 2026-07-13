@@ -25,3 +25,4 @@ def init_principal(app):
 
             for role in current_user.roles:
                 identity.provides.add(RoleNeed(role.name))
+

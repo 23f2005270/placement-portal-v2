@@ -281,6 +281,7 @@ class CompanyApplicationDetail(Resource):
                 application.interview_datetime = None
 
         db.session.commit()
+        invalidate_cache()
         return _application_dict(application)
 
 
@@ -295,5 +296,4 @@ def register_company_resources(app):
     api.add_resource(
         CompanyApplicationDetail, "/api/company/applications/<int:application_id>"
     )
-
 

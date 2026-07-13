@@ -48,3 +48,4 @@ def send_email(to_address, subject, html_body, plain_body=None):
     except Exception as exc:
         print(f"[mail] failed to send to {to_address}: {exc}")
         return False
+

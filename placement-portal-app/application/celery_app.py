@@ -9,3 +9,4 @@ from celery import Celery
 
 celery = Celery("placement_portal")
 celery.config_from_object("celery_config")
+

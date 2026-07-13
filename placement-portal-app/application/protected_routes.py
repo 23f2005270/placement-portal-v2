@@ -42,3 +42,4 @@ def company_ping():
 @student_permission.require(http_exception=403)
 def student_ping():
     return jsonify({"message": "student route OK"})
+

@@ -323,3 +323,4 @@ def download_offer_letter(placement_id):
             "Content-Disposition": f"attachment; filename=offer_letter_{placement.id}.txt"
         },
     )
+
