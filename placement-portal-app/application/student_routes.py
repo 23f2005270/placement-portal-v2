@@ -132,6 +132,10 @@ class StudentProfile(Resource):
                 return {"error": "cgpa must be a number"}, 400
 
         db.session.commit()
+        # branch/cgpa/year feed directly into StudentDriveList's cached
+        # `eligible` flag per drive — without this, a profile edit can
+        # sit behind a stale cached listing for up to 60s.
+        invalidate_cache()
         return {"message": "profile updated"}
 
 
