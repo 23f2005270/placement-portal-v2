@@ -8,7 +8,7 @@ before an application is created, not just displayed as a hint.
 import io
 import os
 
-from flask import Blueprint, Response, request, send_from_directory
+from flask import Blueprint, Response, request
 from flask_login import login_required
 from flask_restful import Api, Resource
 from flask_security import current_user
@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 from application.database import db
-from application.models import Application, Drive, Placement, Student
+from application.models import Application, Drive, Placement
 from application.permissions import student_permission
 from flask_cache import cache, invalidate_cache
 
@@ -107,6 +107,7 @@ class StudentProfile(Resource):
             "experience": student.experience,
             "resume_path": student.resume_path,
             "is_blacklisted": student.is_blacklisted,
+            "is_placed": bool(student.placements),
         }
 
     def patch(self):
@@ -132,18 +133,10 @@ class StudentProfile(Resource):
                 return {"error": "cgpa must be a number"}, 400
 
         db.session.commit()
-        # branch/cgpa/year feed directly into StudentDriveList's cached
-        # `eligible` flag per drive — without this, a profile edit can
-        # sit behind a stale cached listing for up to 60s.
-        invalidate_cache()
         return {"message": "profile updated"}
 
 
 def _student_drives_cache_key(*args, **kwargs):
-    # Eligibility is student-specific, so the cache key must include the
-    # requesting student's id — otherwise one student's cached response
-    # (with their eligible:true/false flags) would leak to another
-    # student hitting the same URL with the same filters.
     return f"student_drives:{current_user.get_id()}:{request.query_string.decode('utf-8')}"
 
 
@@ -198,8 +191,12 @@ class StudentApplicationList(Resource):
         student = get_own_student()
         if student is None:
             return {"error": "no student profile found"}, 404
+
         if student.is_blacklisted:
             return {"error": "your account has been blacklisted and cannot apply to drives"}, 403
+
+        if student.placements:
+            return {"error": "you have already been placed and cannot apply to new drives"}, 403
 
         data = request.get_json(silent=True) or {}
         drive_id = data.get("drive_id")
@@ -258,11 +255,6 @@ def register_student_resources(app):
     api.add_resource(StudentApplicationList, "/api/student/applications")
     api.add_resource(StudentPlacementList, "/api/student/placements")
 
-
-# ---------------------------------------------------------------------
-# Plain Flask routes (file upload + file download don't fit Flask-RESTful's
-# JSON-in/JSON-out model as cleanly, so these live on a small blueprint).
-# ---------------------------------------------------------------------
 
 student_files_bp = Blueprint("student_files_bp", __name__)
 
@@ -327,4 +319,3 @@ def download_offer_letter(placement_id):
             "Content-Disposition": f"attachment; filename=offer_letter_{placement.id}.txt"
         },
     )
-

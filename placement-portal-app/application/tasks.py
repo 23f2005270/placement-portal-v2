@@ -5,9 +5,8 @@ celery_config.py). export_csv is user-triggered from a Flask route and
 runs async, with its Celery AsyncResult state acting as the completion
 signal the frontend polls.
 
-This file also includes an async mail task that sends an immediate
-notification to a student when a company updates their application
-status/interview schedule.
+Also includes an async mail task for immediate application-status update
+notifications when a company changes a student's application status.
 """
 import csv
 import os
@@ -24,26 +23,94 @@ def _get_admin_email():
     return admin_user.email if admin_user else None
 
 
+def _split_csv(value):
+    if not value:
+        return []
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+
+def _is_student_eligible_for_drive(student, drive):
+    branches = _split_csv(drive.eligible_branches)
+    if branches and (student.branch or "").strip() not in branches:
+        return False
+
+    if drive.min_cgpa and (student.cgpa is None or student.cgpa < drive.min_cgpa):
+        return False
+
+    years = _split_csv(drive.eligible_years)
+    if years and str(student.year) not in years:
+        return False
+
+    return True
+
+
+def _runtime_dir():
+    path = os.path.join("instance", "runtime")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _seen_keys_path(name):
+    return os.path.join(_runtime_dir(), f"{name}.txt")
+
+
+def _load_seen_keys(name):
+    path = _seen_keys_path(name)
+    if not os.path.exists(path):
+        return set()
+    with open(path, "r") as f:
+        return {line.strip() for line in f if line.strip()}
+
+
+def _append_seen_key(name, key):
+    path = _seen_keys_path(name)
+    with open(path, "a") as f:
+        f.write(f"{key}\n")
+
+
 @celery.task(name="application.tasks.interview_reminder")
 def interview_reminder():
     """
-    Daily: find applications with an interview scheduled in the next 24
-    hours and email the student.
+    Find applications with an interview scheduled in the next 24 hours
+    and email the student, but only once per application + interview slot.
     """
-    window_end = datetime.utcnow() + timedelta(hours=24)
+    now = datetime.utcnow()
+    window_end = now + timedelta(hours=24)
+    seen = _load_seen_keys("interview_reminders")
+
     upcoming = Application.query.filter(
         Application.status == "Interview",
         Application.interview_datetime.isnot(None),
-        Application.interview_datetime >= datetime.utcnow(),
+        Application.interview_datetime >= now,
         Application.interview_datetime <= window_end,
     ).all()
 
     sent = []
+    skipped = []
+
     for a in upcoming:
         student = a.student
         drive = a.drive
-        if not student or not drive or not student.user:
+
+        if not student or not drive or not student.user or not student.user.email:
+            skipped.append(
+                {
+                    "application_id": a.id,
+                    "reason": "missing_student_drive_or_email",
+                }
+            )
             continue
+
+        slot_key = f"{a.id}|{a.interview_datetime.isoformat()}"
+        if slot_key in seen:
+            skipped.append(
+                {
+                    "application_id": a.id,
+                    "reason": "already_sent_for_this_interview_slot",
+                }
+            )
+            continue
+
         when = a.interview_datetime.strftime("%d %b %Y, %I:%M %p")
         subject = f"Interview reminder: {drive.title}"
         html_body = f"""
@@ -54,39 +121,135 @@ def interview_reminder():
            <strong>{when}</strong>.</p>
         <p>Good luck!</p>
         """
+
         ok = send_email(student.user.email, subject, html_body)
         if ok:
-            sent.append({"application_id": a.id, "student": student.full_name})
+            _append_seen_key("interview_reminders", slot_key)
+            sent.append(
+                {
+                    "application_id": a.id,
+                    "student_id": student.id,
+                    "student_email": student.user.email,
+                }
+            )
+        else:
+            skipped.append(
+                {
+                    "application_id": a.id,
+                    "reason": "send_email_failed",
+                    "student_email": student.user.email,
+                }
+            )
 
-    return {"reminders_sent": len(sent), "details": sent}
+    return {
+        "window_start": now.isoformat(),
+        "window_end": window_end.isoformat(),
+        "candidates_found": len(upcoming),
+        "reminders_sent": len(sent),
+        "details": sent,
+        "skipped": skipped,
+    }
 
 
 @celery.task(name="application.tasks.deadline_reminder")
 def deadline_reminder():
     """
-    Daily: find approved, active drives whose application deadline falls
-    in the next 24 hours, and email every eligible-to-remind student
-    (not blacklisted, hasn't already applied) that time is running out.
+    Find approved, active drives whose application deadline falls in the
+    next 24 hours, and email every eligible student who:
+    - is not blacklisted
+    - is not already placed
+    - has not already applied
+    - has a valid email
+
+    Each student gets only one reminder per drive.
     """
-    window_end = datetime.utcnow() + timedelta(hours=24)
+    now = datetime.utcnow()
+    window_end = now + timedelta(hours=24)
+    seen = _load_seen_keys("deadline_reminders")
+
     closing_drives = Drive.query.filter(
         Drive.approval_status == "approved",
         Drive.status == "Active",
         Drive.deadline.isnot(None),
-        Drive.deadline >= datetime.utcnow(),
+        Drive.deadline >= now,
         Drive.deadline <= window_end,
     ).all()
 
     students = Student.query.filter_by(is_blacklisted=False).all()
+
     sent = []
+    skipped = []
+    drive_debug = []
+
     for drive in closing_drives:
         already_applied_ids = {
             a.student_id for a in Application.query.filter_by(drive_id=drive.id).all()
         }
+
+        drive_debug.append(
+            {
+                "drive_id": drive.id,
+                "title": drive.title,
+                "deadline": drive.deadline.isoformat() if drive.deadline else None,
+                "already_applied_ids": list(already_applied_ids),
+            }
+        )
+
         deadline_str = drive.deadline.strftime("%d %b %Y, %I:%M %p")
+
         for student in students:
-            if student.id in already_applied_ids or not student.user:
+            reminder_key = f"{drive.id}|{student.id}"
+
+            if reminder_key in seen:
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "reason": "already_sent_for_this_drive",
+                    }
+                )
                 continue
+
+            if student.id in already_applied_ids:
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "reason": "already_applied",
+                    }
+                )
+                continue
+
+            if student.placements:
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "reason": "already_placed",
+                    }
+                )
+                continue
+
+            if not _is_student_eligible_for_drive(student, drive):
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "reason": "not_eligible",
+                    }
+                )
+                continue
+
+            if not student.user or not student.user.email:
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "reason": "missing_email",
+                    }
+                )
+                continue
+
             subject = f"Deadline approaching: {drive.title}"
             html_body = f"""
             <p>Hi {student.full_name},</p>
@@ -95,22 +258,51 @@ def deadline_reminder():
                <strong>{deadline_str}</strong>.</p>
             <p>Log in to the Placement Portal to apply before it closes.</p>
             """
+
             ok = send_email(student.user.email, subject, html_body)
             if ok:
-                sent.append({"student_id": student.id, "drive_id": drive.id})
+                _append_seen_key("deadline_reminders", reminder_key)
+                sent.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "student_email": student.user.email,
+                    }
+                )
+            else:
+                skipped.append(
+                    {
+                        "drive_id": drive.id,
+                        "student_id": student.id,
+                        "student_email": student.user.email,
+                        "reason": "send_email_failed",
+                    }
+                )
 
-    return {"reminders_sent": len(sent), "details": sent}
+    return {
+        "window_start": now.isoformat(),
+        "window_end": window_end.isoformat(),
+        "closing_drives_found": len(closing_drives),
+        "drive_debug": drive_debug,
+        "students_considered": len(students),
+        "reminders_sent": len(sent),
+        "details": sent,
+        "skipped": skipped,
+    }
 
 
 @celery.task(name="application.tasks.monthly_placement_report")
 def monthly_placement_report():
     """
-    Runs on the 1st of each month. Builds an HTML summary of the previous
-    ~30 days of placements and emails it to the admin. Also archives a
-    copy under instance/reports/ so there's a record even if mail delivery
-    fails.
+    Builds an HTML summary of the previous ~30 days of placements and
+    emails it to the admin. Archives a copy under instance/reports/.
+
+    Duplicate protection: only one mailed report per generated time-window key.
     """
     since = datetime.utcnow() - timedelta(days=30)
+    window_key = since.strftime("%Y-%m-%d")
+    seen = _load_seen_keys("monthly_reports")
+
     placements = Placement.query.filter(Placement.created_at >= since).all()
     total_applications = Application.query.filter(Application.applied_date >= since).count()
     drives_conducted = Drive.query.filter(Drive.created_at >= since).count()
@@ -124,7 +316,7 @@ def monthly_placement_report():
 
     html_body = f"""
     <h2>Monthly Placement Report</h2>
-    <p>Period: last 30 days &middot; generated {datetime.utcnow().strftime('%d %b %Y')}</p>
+    <p>Period: last 30 days &middot; generated {datetime.utcnow().strftime('%d %b %Y %I:%M %p')}</p>
     <ul>
       <li>Drives conducted: {drives_conducted}</li>
       <li>Applications received: {total_applications}</li>
@@ -145,9 +337,32 @@ def monthly_placement_report():
         f.write(html_body)
 
     admin_email = _get_admin_email()
-    mailed = send_email(admin_email, "Monthly Placement Report", html_body) if admin_email else False
+    if not admin_email:
+        return {
+            "report_file": filename,
+            "placement_count": len(placements),
+            "mailed": False,
+            "reason": "admin_email_missing",
+        }
 
-    return {"report_file": filename, "placement_count": len(placements), "mailed": mailed}
+    if window_key in seen:
+        return {
+            "report_file": filename,
+            "placement_count": len(placements),
+            "mailed": False,
+            "reason": "already_sent_for_this_window",
+        }
+
+    mailed = send_email(admin_email, "Monthly Placement Report", html_body)
+    if mailed:
+        _append_seen_key("monthly_reports", window_key)
+
+    return {
+        "report_file": filename,
+        "placement_count": len(placements),
+        "mailed": mailed,
+        "admin_email": admin_email,
+    }
 
 
 @celery.task(name="application.tasks.export_csv", bind=True)
@@ -186,10 +401,7 @@ def export_csv(self, student_id):
 def send_application_update_email(application_id, old_status=None, old_interview_datetime=None):
     """
     Async mail task fired when a company updates a student's application.
-    Sends an immediate email notification if the status or interview time
-    changed.
-
-    Returns a small status object for debugging/verification in worker logs.
+    Sends an immediate email notification if the status or interview time changed.
     """
     application = Application.query.get(application_id)
     if application is None:
