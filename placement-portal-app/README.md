@@ -35,8 +35,8 @@ A campus placement management system with three roles — **Admin**, **Company**
 Install the two services on macOS:
 
 ```bash
-brew install redis
-brew install mailpit
+brew services start redis
+brew services start mailpit
 ```
 
 ## 1. Set up the app
